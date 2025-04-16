@@ -42,7 +42,12 @@ struct UCWrapButton: View {
     let spacing :CGFloat
     
     //当前屏幕宽度
+#if os(iOS)
     let sWidth = UIScreen.main.bounds.width
+#endif
+#if os(macOS)
+    let sWidth: CGFloat = 0 //@TODO: MAC平台代码尚未实现
+#endif
     
     //一行有效宽度 = 屏幕宽度 - 控件之间的距离 * 2
     let enableRowWidth: CGFloat

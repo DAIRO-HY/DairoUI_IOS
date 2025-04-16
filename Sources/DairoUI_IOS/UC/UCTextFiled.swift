@@ -86,8 +86,10 @@ struct UCTextFiled: View {
             switch mType {
             case UCTextFiledType.text:
                 TextField(mHide, text: mText)
+#if os(iOS)
                     .keyboardType(.emailAddress) // 确保输入法切换
                     .autocapitalization(.none) // 可选：关闭自动大写
+#endif
                     .disableAutocorrection(true) // 可选：关闭自动校正
                     .font(.body)
                     .foregroundColor(Color.gl.textContent)

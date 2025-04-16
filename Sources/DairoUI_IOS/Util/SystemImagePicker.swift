@@ -4,7 +4,9 @@
 //
 //  Created by zhoulq on 2024/03/17.
 //
+#if os(iOS)
 import SwiftUI
+import UIKit
 
 /**
  * 图片选择器
@@ -43,3 +45,4 @@ public struct SystemUIImagePicker: UIViewControllerRepresentable {
 
     }
 }
+#endif

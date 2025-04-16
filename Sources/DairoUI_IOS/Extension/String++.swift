@@ -1,5 +1,4 @@
 import Foundation
-import UIKit
 import CryptoKit
 import var CommonCrypto.CC_MD5_DIGEST_LENGTH
 import func CommonCrypto.CC_SHA256

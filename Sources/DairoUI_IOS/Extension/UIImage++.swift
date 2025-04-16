@@ -1,3 +1,4 @@
+#if os(iOS)
 import Foundation
 import UIKit
 import CommonCrypto
@@ -38,3 +39,4 @@ extension UIImage {
         return scaledImage
     }
 }
+#endif

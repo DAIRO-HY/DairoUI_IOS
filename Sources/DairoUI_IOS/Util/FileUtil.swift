@@ -183,4 +183,15 @@ class FileUtil{
         }
         return folderSize
     }
+    
+    /**
+     * 获取绝对路径
+     */
+    public static func getAbsPath(_ path: String) -> String?{
+        if let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let fileURL = documentsPath.appendingPathComponent(path)
+            return fileURL.path
+        }
+        return nil
+    }
 }

@@ -12,7 +12,6 @@ import ObjectiveC
  - parameter v1:参数1
  - parameter v2:参数2
  */
-@available(iOS 14.0, *)
 func equal(_ v1: Any?, _ v2: Any?, nullValue: Bool = true) -> Bool{
     if v1 == nil && v2 == nil { return nullValue}
     if v1 == nil || v2 == nil { return false}//其中一个为nil
@@ -28,9 +27,10 @@ func equal(_ v1: Any?, _ v2: Any?, nullValue: Bool = true) -> Bool{
     if let vv1 = v1 as? UInt16, let vv2 = v2 as? UInt16 { return vv1 == vv2 }
     if let vv1 = v1 as? UInt32, let vv2 = v2 as? UInt32 { return vv1 == vv2 }
     if let vv1 = v1 as? UInt64, let vv2 = v2 as? UInt64 { return vv1 == vv2 }
-
     if let vv1 = v1 as? Float, let vv2 = v2 as? Float { return vv1 == vv2 }
+    #if os(iOS)
     if let vv1 = v1 as? Float16, let vv2 = v2 as? Float16 { return vv1 == vv2 }
+    #endif
     if let vv1 = v1 as? Float32, let vv2 = v2 as? Float32 { return vv1 == vv2 }
     if let vv1 = v1 as? Float64, let vv2 = v2 as? Float64 { return vv1 == vv2 }
     if let vv1 = v1 as? Double, let vv2 = v2 as? Double { return vv1 == vv2 }

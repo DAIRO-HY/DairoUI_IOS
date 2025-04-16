@@ -98,40 +98,44 @@ struct SettingTextFieldView: View {
     var horizontalPadding: CGFloat? = nil
     
     var body: some View {
-            HStack(spacing: horizontalSpacing) {
-                if let icon {
-                    SettingIconView(icon: icon, iconSize: self.iconSize, iconRadius: self.iconRadius)
-                }
-                
-                Text(title)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.vertical, verticalPadding)
-                
-                if self.type == .text{
-                    TextField(self.placeholder, text: $text)
-                        .keyboardType(.emailAddress) // 确保输入法切换
-                        .autocapitalization(.none) // 可选：关闭自动大写
-                        .disableAutocorrection(true) // 可选：关闭自动校正
-                        .multilineTextAlignment(.trailing)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, verticalPadding)
-                        .padding(.horizontal, horizontalPadding ?? edgePadding)
-                        .accessibilityElement(children: .combine)
-                }else{
-                    SecureField(self.placeholder, text: $text)
-                        .keyboardType(.emailAddress) // 确保输入法切换
-                        .autocapitalization(.none) // 可选：关闭自动大写
-                        .disableAutocorrection(true) // 可选：关闭自动校正
-                        .multilineTextAlignment(.trailing)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, verticalPadding)
-                        .padding(.horizontal, horizontalPadding ?? edgePadding)
-                        .accessibilityElement(children: .combine)
-                }
+        HStack(spacing: horizontalSpacing) {
+            if let icon {
+                SettingIconView(icon: icon, iconSize: self.iconSize, iconRadius: self.iconRadius)
             }
-            .padding(.horizontal, horizontalPadding ?? edgePadding)
-            .accessibilityElement(children: .combine)
-
+            
+            Text(title)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, verticalPadding)
+            
+            if self.type == .text{
+                TextField(self.placeholder, text: $text)
+#if os(iOS)
+                    .keyboardType(.emailAddress) // 确保输入法切换
+                    .autocapitalization(.none) // 可选：关闭自动大写
+#endif
+                    .disableAutocorrection(true) // 可选：关闭自动校正
+                    .multilineTextAlignment(.trailing)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, verticalPadding)
+                    .padding(.horizontal, horizontalPadding ?? edgePadding)
+                    .accessibilityElement(children: .combine)
+            }else{
+                SecureField(self.placeholder, text: $text)
+#if os(iOS)
+                    .keyboardType(.emailAddress) // 确保输入法切换
+                    .autocapitalization(.none) // 可选：关闭自动大写
+#endif
+                    .disableAutocorrection(true) // 可选：关闭自动校正
+                    .multilineTextAlignment(.trailing)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, verticalPadding)
+                    .padding(.horizontal, horizontalPadding ?? edgePadding)
+                    .accessibilityElement(children: .combine)
+            }
+        }
+        .padding(.horizontal, horizontalPadding ?? edgePadding)
+        .accessibilityElement(children: .combine)
+        
     }
 }
 
