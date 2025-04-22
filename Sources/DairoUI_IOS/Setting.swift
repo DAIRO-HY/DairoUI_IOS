@@ -36,6 +36,8 @@ public extension Setting {
             return text.title
         case let button as SettingButton:
             return button.title
+        case let settingView as SettingNavigationLink:
+            return settingView.title
         case let toggle as SettingToggle:
             return toggle.title
         case is SettingSlider:
@@ -63,10 +65,12 @@ public extension Setting {
      */
     var text: String? {
         switch self {
-        case let text as SettingText:
-            return text.title
-        case let button as SettingButton:
-            return button.title
+        case let v as SettingText:
+            return v.title
+        case let v as SettingButton:
+            return v.title
+        case let v as SettingNavigationLink:
+            return v.title
         case let toggle as SettingToggle:
             return toggle.title
         case is SettingSlider:

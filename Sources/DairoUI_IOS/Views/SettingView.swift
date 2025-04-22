@@ -23,18 +23,20 @@ public struct SettingView: View {
 
     public var body: some View {
         switch setting {
-        case let text as SettingText:
-            text
-        case let button as SettingButton:
-            button
-        case let toggle as SettingToggle:
-            toggle
-        case let slider as SettingSlider:
-            slider
-        case let picker as SettingPicker:
-            picker
-        case let textField as SettingTextField:
-            textField
+        case let v as SettingText:
+            v
+        case let v as SettingButton:
+            v
+        case let v as SettingNavigationLink:
+            v
+        case let v as SettingToggle:
+            v
+        case let v as SettingSlider:
+            v
+        case let v as SettingPicker:
+            v
+        case let v as SettingTextField:
+            v
         case let page as SettingPage:
 
             if isPagePreview {

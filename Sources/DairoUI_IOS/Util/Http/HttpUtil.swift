@@ -1,71 +1,75 @@
 import Foundation
 
 /**
- * 第三方采集系统来源的歌曲下载器
- * 该类用于不支持Range(断点续传)的链接,一次性将文件下载
+ * Http请求工具类
  */
-final class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@unchecked Sendable {
-
+final public class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate, @unchecked Sendable {
+    
     /**
      * 请求URL
      */
     private let url: String
-
+    
+    /**
+     * 当前URLSession
+     */
+    private var mURLSession: URLSession? = nil
+    
     /**
      * 下载任务
      */
     private var httpTask: URLSessionDataTask? = nil
-
+    
     /**
      * 连接超时设置（毫秒）
      */
     var connectTimeout:Int = Int.max
-
+    
     /**
      * 读取超时设置（毫秒）
      */
     var readTimeout:Int = Int.max
-
+    
     /**
      * 请求方式
      */
     var method = "GET"
-
+    
     /**
      * 状态码
      */
     var statusCode = -1
-
+    
     /**
      * 是否一次性把数据读完
      */
     private var isReadToEnd = true
-
+    
     /**
      * 返回头部信息
      */
     var resHeader:[AnyHashable : Any]?
-
+    
     /**
      * 读取数据之前回调函数
      */
     private var beforeFunc: ((_ statusCode: Int) -> Bool)?
-
+    
     /**
      * 读取数据回调函数
      */
     private var successFunc: ((_ data: Data) -> ())?
-
+    
     /**
      * 请求完成回调函数
      */
     private var finishFunc: ((_ error:Error?) -> ())?
-
+    
     /**
      * 请求的头部信息
      */
     private var header = [String:String]()
-
+    
     /**
      * 请求数据
      */
@@ -80,28 +84,28 @@ final class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@
         }
         return -1
     }
-
+    
     /**
      * 所有数据
      */
     private lazy var data: Data = {
         return Data()
     }()
-
+    
     /**
      * 初始化
      */
     init(_ url: String) {
         self.url = url
     }
-
+    
     /**
      * 设置头部信息
      */
     func setHeader(_ key: String,_ value: String){
         self.header[key] = value
     }
-
+    
     /**
      * 设置读取数据前的回调函数
      */
@@ -109,7 +113,7 @@ final class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@
         self.beforeFunc = block
         return self
     }
-
+    
     /**
      * 请求成功的回调函数
      */
@@ -117,7 +121,7 @@ final class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@
         self.successFunc = block
         return self
     }
-
+    
     /**
      * 设置最终回调函数
      */
@@ -125,7 +129,7 @@ final class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@
         self.finishFunc = block
         return self
     }
-
+    
     /**
      * 添加请求数据参数
      */
@@ -134,14 +138,14 @@ final class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@
             self.requestBody += key + "=" + encode + "&"
         }
     }
-
+    
     /**
      * 设置请求数据参数
      */
     func setRequestBody(requestBody: String){
         self.requestBody = requestBody
     }
-
+    
     /**
      * 发起请求
      * isReadToEnd 是否一次性读完所有数据
@@ -150,16 +154,19 @@ final class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@
         debugPrint("-->url:\(self.url)")
         self.isReadToEnd = isReadToEnd
         let config = URLSessionConfiguration.default
-
+        
         //请求链接超时设置
         config.timeoutIntervalForRequest = TimeInterval(Float(self.connectTimeout) / 1000)
-
+        
         //这个参数表示在接收到服务器的第一个字节之后，从服务器接收到完整的响应数据的最大时间间隔。如果在该时间间隔内没有接收到完整的响应数据，会触发资源超时错误。默认值为 7 天（即 604800 秒）。你可以根据需要将其设置为适当的值，以便在接收响应数据花费过长时间时终止请求。
         config.timeoutIntervalForResource = TimeInterval(Float(self.readTimeout) / 1000)
-
+        
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        config.urlCache = nil
+        
         var request = URLRequest(url: URL(string: self.url)!)
         request.httpMethod = method
-
+        
         //添加请求头部信息
         self.header.forEach { item in
             request.setValue(item.value, forHTTPHeaderField: item.key)
@@ -167,17 +174,17 @@ final class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@
         if !self.requestBody.isEmpty{
             request.httpBody = self.requestBody.data(using: .utf8)
         }
-
+        
         //开启新的回话
         let urlSession = URLSession(configuration: config, delegate: self, delegateQueue: nil)
-
         self.httpTask = urlSession.dataTask(with: request)
-
+        self.mURLSession = urlSession
+        
         //发起请求
         self.httpTask!.resume()
         return self
     }
-
+    
     /**
      * 同返回数据中获取头部信息
      */
@@ -190,7 +197,7 @@ final class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@
         }
         return String(describing: value)
     }
-
+    
     /// 从响应请求头中获取视频文件总长度 contentLength
     public func urlSession(
         _ session: URLSession,
@@ -199,7 +206,7 @@ final class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@
         completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
     ) {
         let httpResponse = response as! HTTPURLResponse
-
+        
         //状态码
         self.statusCode = httpResponse.statusCode
         
@@ -221,15 +228,17 @@ final class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@
         }else{//实时返回读取到的数据
             self.successFunc?(data)
         }
-//        if self.isCancel{//如果已经取消了
-//            self.httpTask?.cancel()
-//        }
+        //        if self.isCancel{//如果已经取消了
+        //            self.httpTask?.cancel()
+        //        }
     }
-
+    
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        self.mURLSession?.invalidateAndCancel()
         if let error = error{//如果有错误
             if let urlErr = error as? URLError{
                 if urlErr.code.rawValue == -999{//用户已经取消
+                    debugPrint(error)
                     self.finishFunc?(CancelError())
                     return
                 }
@@ -241,16 +250,19 @@ final class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@
         }
         self.finishFunc?(error)
     }
-
+    
     /**
      * 取消下载任务
      */
-    func cancel() {
+    func close() {
         self.httpTask?.cancel()
+        
+        //这里一定要执行,否则导致该类的实例永远不会被回收,导致内存溢出
+        self.mURLSession?.invalidateAndCancel()
     }
-
+    
     deinit {
-        debugPrint("-->deinit:HttpConnection")
+        debugPrint("-->HttpUtil.deinit")
     }
     
     /**

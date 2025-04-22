@@ -7,18 +7,23 @@
 import Foundation
 
 ///文件下载任务
-class DownloadThread{
+///`TODO:是否需要判断同名文件已经在下载中
+public class DownloadThread{
+    
+    public static let DOWNLOADING_FILE_EXT = ".downloading"
     
     /**
      * 进度回调函数类型别名
      */
-    typealias progressFuncType = ((_ total: Int64, _ downloaded: Int64, _ speed: Int64) -> ())
+    public typealias DownloadThreadProgressFuncType = ((_ total: Int64, _ downloaded: Int64, _ speed: Int64) -> ())
+    
+    /**
+     * 同步锁
+     */
+    private let lock = NSLock()
     
     ///下载中的文件信息
-    private let info: DownloadingInfo
-    
-    ///是否被强制中断
-    var isBreak = false;
+    let info: DownloadingInfo
     
     /**
      * 失败重试最大次数
@@ -28,7 +33,7 @@ class DownloadThread{
     /**
      * 文件大小总大小
      */
-        var total: Int64 = -1
+    var total: Int64 = -1
     
     /**
      * 请求URL
@@ -63,7 +68,7 @@ class DownloadThread{
     /**
      * 下载错误信息
      */
-    var error: Error? = nil
+//    var error: Error? = nil
     
     /**
      * 用来记录最后一次写入数据的时间
@@ -88,18 +93,18 @@ class DownloadThread{
      * 读取数据之前回调函数
      */
     private var beforeFunc: ((_ statusCode: Int) -> Bool)?
-
+    
     /**
      * 进度回调函数
      */
-    private var progressFunc: progressFuncType?
-
+    private var progressFunc: DownloadThreadProgressFuncType?
+    
     /**
      * 下载完成回调函数
      */
-    private let finishFunc: ((_ error:Error?) -> ())
+    private let finishFunc: (_ info: DownloadingInfo, _ error: Error?) -> ()
     
-    init(_ info: DownloadingInfo, finishFunc: @escaping ((_ error:Error?) -> ())) {
+    init(_ info: DownloadingInfo, finishFunc: @escaping (_ info: DownloadingInfo, _ error: Error?) -> ()) {
         self.info = info
         self.finishFunc = finishFunc
     }
@@ -107,7 +112,7 @@ class DownloadThread{
     /**
      * 设置下载进度回调函数
      */
-    func setProgressFunc(progressFunc: @escaping progressFuncType) {
+    func setProgressFunc(_ progressFunc: DownloadThreadProgressFuncType?) {
         self.progressFunc = progressFunc
     }
     
@@ -130,7 +135,7 @@ class DownloadThread{
     //  }
     
     ///开始上传任务
-    func download() {
+    func download(){
         self.start()
         //    try {
         //      await this._start();
@@ -161,29 +166,20 @@ class DownloadThread{
     
     ///开始下载
     private func start() {
+        if FileManager.default.fileExists(atPath: self.info.savePath) {//文件已经下载完成,无需重新下载
+            
+            //回调下载结束函数
+            self.finishFunc(self.info, nil)
+            return
+        }
         
-        //当前下载文件
-        //        let file = DownloadFile.getFilePath(self.info.url)
-        
-        if FileManager.default.fileExists(atPath: self.info.path) {//文件存在
+        if FileManager.default.fileExists(atPath: self.info.downloadingPath) {//下载临时文件已经存在,读取已经下载的大小继续下载
             
             //得到已下载大小
-            self.downloadedSize = FileUtil.getFileSize(self.info.path)!
+            self.downloadedSize = FileUtil.getFileSize(self.info.downloadingPath)!
         } else {
             self.downloadedSize = 0
         }
-        
-        //        //初始化一个可以写文件时工具
-        //        self.writeFileHandle = FileHandle(forWritingAtPath: self.info.path)
-        //
-        //        //将指针移动到文件末尾
-        //        try! self.writeFileHandle?.seekToEnd()
-        
-        //设置消息为正在下载
-        //    final connctionMessage = DownloadMessage(DownloadCode.MESSAGE, "网络连接中");
-        //    this.sendPort.send(connctionMessage);
-        
-        
         
         let http = HttpUtil(self.info.url)
             .before(self.before)
@@ -198,138 +194,46 @@ class DownloadThread{
         //        http.connectTimeout = 3000
         //        http.readTimeout = 10 * 1000
         
+        lock.lock()
+        if self.isCancel{//并发操作时,有可能cancel函数被先调用
+            lock.unlock()
+            http.close()
+            self.finish(HttpUtil.CancelError())
+            return
+        }
         self.httpUtil = http
         http.request(false)
-        
-        //    var url = this.info.url;
-        //    if(!url.startsWith("http")){
-        //      url = this.domain + this.info.url;
-        //    }
-        //    final uri = Uri.parse(url);
-        //    final client = HttpClient();
-        //    this._client = client;
-        
-        //    IOSink? sink;
-        //    try {
-        //      final request = await client.openUrl("GET", uri);
-        //
-        //      //禁止重定向
-        //      request.followRedirects = false;
-        //      request.headers.set(HttpHeaders.rangeHeader, "bytes=${downloadedSize}-");
-        //      if(this.info.token.isNotEmpty){//添加认证Token
-        //        request.headers.set(HttpHeaders.cookieHeader, "token=${this.info.token}");
-        //      }
-        //      final response = await request.close();
-        //      if (response.statusCode == 416) { //文件应该是已经下载完成
-        //        //文件已经下载完成
-        //        return;
-        //      }
-        //
-        //      if (response.statusCode != 200 && response.statusCode != 206) {
-        //        final body = await response.transform(utf8.decoder).join();
-        //        //上传报错了
-        //        throw Exception(body);
-        //      }
-        //
-        //      //得到文件大小
-        //      final size = response.contentLength + downloadedSize;
-        //
-        //      //当前时间戳
-        //      var lastTime = DateTime
-        //          .now()
-        //          .millisecondsSinceEpoch;
-        //
-        //
-        //      if (!file.existsSync()) { //文件不存在则创建文件
-        //        file.createSync(recursive: true);
-        //      }
-        //
-        //      //文件输出流
-        //      sink = file.openWrite(mode: FileMode.append);
-        //
-        //      //最后一次记录的上传大小（用来计算网速）
-        //      var lastDownloadSize = downloadedSize;
-        //      await response.forEach((data) {
-        //        sink!.add(data);
-        //        downloadedSize += data.length;
-        //        final curTime = DateTime
-        //            .now()
-        //            .millisecondsSinceEpoch;
-        //        if (curTime - lastTime > 500) {
-        //          //计算下载速度(Byte)
-        //          final speed = (downloadedSize - lastDownloadSize) / (curTime - lastTime) * 1000;
-        //
-        //          //剩余时间(毫秒)
-        //          final needTime = (size - downloadedSize) / speed * 1000;
-        //
-        //          //发送上传进度消息
-        //          final message = DownloadMessage(DownloadCode.PROGRESS, [size, downloadedSize, speed.toInt(), needTime.toInt()]);
-        //
-        //          this.sendPort.send(message);
-        //          lastDownloadSize = downloadedSize;
-        //          lastTime = DateTime.now().millisecondsSinceEpoch;
-        //          // print("${downloadedSize.dataSize}/${size.dataSize}");
-        //        }
-        //        if (this.isBreak) {
-        //          //上传被强行停止了
-        //          throw Exception();
-        //        }
-        //      });
-        //
-        //    } finally {
-        //      await sink?.flush();
-        //      await sink?.close();
-        //      client.close();
-        //    }
+        lock.unlock()
     }
-    
     
     /// 从响应请求头中获取视频文件总长度 contentLength
     private func before(_ statusCode:Int)-> Bool {
         if statusCode == 416 {//文件可能已经下载完成
             //            self.size = self.downloadedSize
-            self.isFinish = true
             return false
         }
         if (statusCode != 200 && statusCode != 206) {//206代表部分数据,头部指定位置
-            //            EventUtil.post(EventCode.PLAYER_MSG, "采集出错:服务器状态码:\(statusCode)")
-            //            self.error = DwonloadError.error("采集出错:服务器状态码:\(statusCode)")
-            self.isFinish = true
+            //@TODO: 下载失败,这里应该记录具体错误信息
             return false
         }
-        self.total = self.httpUtil!.contentLengthLong
-        //        self.errorTryTimes = 0
-        //        if self.size == 0 {//文件大小未知,从头部获取文件文件大小
-        //            let resRange = self.httpUtil!.getResponseHeader("Content-Range")
-        //            if(resRange == nil){//文件可能已经下载完成,也可能该下载连接不支持断点下载,这里我们先按照下载完成来处理
-        //                self.size = self.downloadedSize
-        //                return false
-        //            }
-        //
-        //            //文件大小 = 已经下载的大小 + 本次要下载的大小
-        //            self.size = self.httpUtil!.contentLengthLong + self.downloadedSize
-        //        }
-        if (self.isCancel) {//下载被取消
-            return false
-        }
-        if !FileManager.default.fileExists(atPath: self.info.path) {//文件不存在
-            let parentPath = FileUtil.getParentPath(self.info.path)
+        
+        //获取到文件总大小
+        self.total = self.httpUtil!.contentLengthLong + self.downloadedSize
+        if !FileManager.default.fileExists(atPath: self.info.downloadingPath) {//文件不存在
+            let parentPath = FileUtil.getParentPath(self.info.downloadingPath)
             if !FileManager.default.fileExists(atPath: parentPath){//创建文件夹
                 FileUtil.mkdirs(parentPath)
             }
             
             //创建文件,在写入文件之前必须要先创建一个空文件
-            FileManager.default.createFile(atPath: self.info.path, contents: nil)
+            FileManager.default.createFile(atPath: self.info.downloadingPath, contents: nil)
         }
         
-        if (self.writeFileHandle == nil) {//初始化文件写入流
-            
-            //初始化一个可以写文件时工具
-            self.writeFileHandle = FileHandle(forWritingAtPath: self.info.path)
-            
-            //将指针移动到文件末尾
-            try! self.writeFileHandle?.seekToEnd()
-        }
+        //初始化一个可以写文件时工具
+        self.writeFileHandle = FileHandle(forWritingAtPath: self.info.downloadingPath)
+        
+        //将指针移动到文件末尾
+        try! self.writeFileHandle?.seekToEnd()
         return true
     }
     
@@ -374,49 +278,50 @@ class DownloadThread{
     /**
      * 最终执行
      */
-    private func finish(error: Error?) {
+    private func finish(_ err: Error?) {
+        var err = err
+        if err == nil{
+            
+            //当前下载的文件大小
+            let downloadedFileSize = FileUtil.getFileSize(self.info.downloadingPath)!
+            if self.total != downloadedFileSize{//如果下载的文件不是一个完成的文件,则删除文件
+                try? FileManager.default.removeItem(atPath: self.info.downloadingPath)
+                err = DownloadError.incomplete
+            } else {
+                
+                //文件重命名
+                FileUtil.rename(source: self.info.downloadingPath, target: self.info.savePath)
+            }
+        }
+        self.isFinish = true
         
         //完成之后回调下载进度,避免出现下载进度无法100%
         self.progressFunc?(self.total, self.downloadedSize, 0)
-        if error != nil{
-            debugPrint(error)
-        }
-        
-        //        if error is HttpUtil.CancelError {//下载被取消异常,什么也不做
-        //            return
-        //        }
-        //        if !self.isCancel && error != nil && self.errorTryTimes < self.ERROR_TRY_MAX_TIMES{//允许重试
-        //            self.errorTryTimes += 1
-        //
-        //            //间隔一段时间之后重试
-        //            usleep(500000)//0.5秒
-        //            EventUtil.post(EventCode.PLAYER_MSG, "网络连接失败,正在第\(self.errorTryTimes)次尝试")
-        //            self.checkDownload()
-        //            return
-        //        }
-        //        self.error = error
-        //        if (error == nil) {
-        //
-        //            //广播当前下载进度
-        //            EventUtil.post(EventCode.DOWNLOAD_PROGRESS, (self.downloadedSize, self.size))
-        //            EventUtil.post(EventCode.PLAYER_MSG, "")//清除播放器信息
-        //        } else {
-        //            EventUtil.post(EventCode.PLAYER_MSG, "网络连接失败")
-        //        }
         
         //关闭文件操作
         try? self.writeFileHandle?.close()
-        self.isFinish = true
+        self.writeFileHandle = nil
+        
+        //关闭请求资源
+        self.httpUtil?.close()
+        
+        self.httpUtil = nil
         
         //回调下载结束函数
-        self.finishFunc(error)
+        self.finishFunc(self.info, err)
     }
     
     /**
      * 取消下载
      */
     func cancel(){
-        self.isBreak = true
-        self.httpUtil?.cancel()
+        lock.lock()
+        self.isCancel = true
+        self.httpUtil?.close()
+        lock.unlock()
+    }
+    
+    deinit {
+        debugPrint("-->DownloadThread.deinit")
     }
 }

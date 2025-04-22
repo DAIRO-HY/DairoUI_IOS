@@ -125,6 +125,20 @@ class FileUtil{
     }
     
     /**
+     * 文件重命名
+     */
+    public static func rename(source: String, target: String){
+        let fileManager = FileManager.default
+
+        // 原路径（当前文件路径）
+        let sourceURL = URL(fileURLWithPath: source)
+
+        // 新路径（新文件名）
+        let targetURL = URL(fileURLWithPath: target)
+        try? fileManager.moveItem(at: sourceURL, to: targetURL)
+    }
+    
+    /**
      * 删除某个文件夹
      */
     static func deleteFolder(_ path: String) {

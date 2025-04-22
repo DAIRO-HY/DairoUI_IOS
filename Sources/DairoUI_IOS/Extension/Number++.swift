@@ -11,7 +11,7 @@ extension SignedInteger{
     /**
      * 将整形数据转成文件大小格式的字符串
      */
-    var fileSize: String{
+    public var fileSize: String{
         let this = Double(self)
         var result = ""
         if self >= 1024 * 1024 * 1024{
@@ -29,7 +29,7 @@ extension SignedInteger{
     /**
      * 转换成时间格式
      */
-    var timeFormat: String{
+    public var timeFormat: String{
         
         //得到秒
         let senconds = Int(self / 1000)
@@ -57,7 +57,7 @@ extension Float64{
     /**
      * 转换成时间格式
      */
-    var timeFormat: String{
+    public var timeFormat: String{
         return Int64(self).timeFormat
     }
 }

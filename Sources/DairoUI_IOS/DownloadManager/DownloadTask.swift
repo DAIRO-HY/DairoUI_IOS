@@ -8,8 +8,9 @@
 
 ///文件上传任务
 class DownloadTask {
-//  ///当前正在下载的列表
-//  static final downloadingId2Bridge = HashMap<int, DownloadBridge>();
+    
+  ///当前正在下载的列表
+    nonisolated(unsafe) static var downloadingId2Bridge = [String : DownloadBridge]()
 //
 //  ///同时下载数
 //  static var syncCount = SettingShared.downloadSyncCount;
