@@ -111,49 +111,6 @@ extension String {
         return String(self[self.index(firstIndex,offsetBy: 1)...])
     }
     
-    /**
-     * 保存一个对象到配置文件
-     */
-    func toLocalObj(_ obj: Codable?) -> Bool {
-        
-        //保存目录
-        let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent(self + ".json").path
-        let parentPath = FileUtil.getParentPath(path)
-        if !FileManager.default.fileExists(atPath: parentPath){//判断文件夹是否存在
-            
-            //创建文件夹
-            FileUtil.mkdirs(parentPath)
-        }
-        let file = File(path)
-        guard let target = obj else {//移除序列化文件
-            file.delete()
-            return true
-        }
-        let jsonData = try! JsonUtil.objToJsonData(target)
-        if file.data == jsonData {//避免重复写入，频繁写入会影响磁盘寿命，但读不会
-            return false
-        }
-        file.write(jsonData)
-        return true
-    }
-    
-    /**
-     * 从本地序列化文件读取到实列
-     */
-    func localObj<T>(_ type: T.Type) -> T? where T: Decodable {
-        
-        //保存目录
-        let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent(self + ".json").path
-        if !FileManager.default.fileExists(atPath: path) {//文件不存在
-            return nil
-        }
-        let file = File(path)
-        guard let data = file.data else{
-            return nil
-        }
-        return try? JSONDecoder().decode(type.self, from: data) as T
-    }
-    
 //    /**
 //     * 将图片地址转成一张图片
 //     */

@@ -119,7 +119,7 @@ struct SettingButtonView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
                         if self.tip != nil && !self.tip!.isEmpty {//提示文字
-                            Text(self.tip!) .foregroundColor(settingSecondaryColor)
+                            Text(self.tip!).font(.subheadline).foregroundColor(settingSecondaryColor)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
@@ -131,7 +131,7 @@ struct SettingButtonView: View {
                         .padding(.vertical, verticalPadding)
                     
                     if self.tip != nil && !self.tip!.isEmpty {//提示文字
-                        Text(self.tip!) .foregroundColor(settingSecondaryColor)
+                        Text(self.tip!).font(.subheadline).foregroundColor(settingSecondaryColor)
                     }
                 }
                 

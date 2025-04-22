@@ -36,6 +36,8 @@ public extension Setting {
             return text.title
         case let button as SettingButton:
             return button.title
+        case let button as SettingButtonSingle:
+            return button.title
         case let settingView as SettingNavigationLink:
             return settingView.title
         case let toggle as SettingToggle:
@@ -68,6 +70,8 @@ public extension Setting {
         case let v as SettingText:
             return v.title
         case let v as SettingButton:
+            return v.title
+        case let v as SettingButtonSingle:
             return v.title
         case let v as SettingNavigationLink:
             return v.title

@@ -4,7 +4,7 @@
 //
 //  Created by zhoulq on 2025/04/22.
 //
-
+#if os(iOS)
 import Foundation
 import SwiftUI
 
@@ -90,3 +90,4 @@ public struct CacheImage: View{
         }
     }
 }
+#endif

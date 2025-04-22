@@ -42,7 +42,7 @@ public struct SettingCustomView: Setting {
     public var view: AnyView
 
     public init<Content>(
-        id: AnyHashable? = nil,
+        id: AnyHashable? = String(Int64(Date().timeIntervalSince1970 * 1_000_000)) + "-" + String(Int.random(in: 1...100)),
         titleForSearch: String? = nil,
         displayIndependentlyInSearch: Bool = true,
         @ViewBuilder view: () -> Content

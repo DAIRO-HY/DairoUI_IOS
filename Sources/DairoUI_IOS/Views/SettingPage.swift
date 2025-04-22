@@ -18,18 +18,18 @@ public struct SettingPage: Setting {
     public var spacing = CGFloat(20)
     public var verticalPadding = CGFloat(6)
     public var backgroundColor: Color?
-    public var navigationTitleDisplayMode = NavigationTitleDisplayMode.automatic
+    public var navigationTitleDisplayMode = NavigationTitleDisplayMode.inline
     public var previewConfiguration = PreviewConfiguration()
     @SettingBuilder public var tuple: SettingTupleView
     
     public init(
         id: AnyHashable? = nil,
-        title: String,
+        title: String = "",
         selectedChoice: String? = nil,
         spacing: CGFloat = CGFloat(20),
         verticalPadding: CGFloat = CGFloat(6),
         backgroundColor: Color? = nil,
-        navigationTitleDisplayMode: SettingPage.NavigationTitleDisplayMode = NavigationTitleDisplayMode.automatic,
+        navigationTitleDisplayMode: SettingPage.NavigationTitleDisplayMode = NavigationTitleDisplayMode.inline,
         previewConfiguration: SettingPage.PreviewConfiguration = PreviewConfiguration(),
         @SettingBuilder tuple: () -> SettingTupleView
     ) {

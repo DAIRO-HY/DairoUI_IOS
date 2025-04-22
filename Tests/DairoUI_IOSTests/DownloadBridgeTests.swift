@@ -12,7 +12,7 @@ import Testing
     }
     for i in 1...1{
         //try? await Task.sleep(nanoseconds: 1_0_000_000)
-        let bridge = DownloadBridge.add(url: url + "&" + String(i), folder: folder, progressFunc: {
+        let bridge = DownloadBridge.add(uid: "uid\(i)", url: url + "&" + String(i), folder: folder, progressFunc: {
             print("\(i):当前下载进度:\($1.fileSize)/\($0.fileSize)  \($2.fileSize)")
         }){ err in
             if err != nil{

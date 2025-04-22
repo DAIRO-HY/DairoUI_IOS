@@ -54,9 +54,109 @@ class FileUtil{
     }
     
     /**
+     读取文件所有内容
+     - Parameters:
+     - path: 文件路径
+     */
+    public static func readAll(_ path: String) -> Data?{
+        
+        // 打开文件
+        guard let readFileHandle = FileHandle(forReadingAtPath: path) else{
+            return nil
+        }
+        defer{
+            try? readFileHandle.close()
+        }
+        
+        // 读取全部数据
+        return readFileHandle.readData(ofLength: Int.max)
+    }
+    
+    
+    /**
+     读取文件所有文本内容
+     - Parameters:
+     - path: 文件路径
+     */
+    public static func readText(_ path: String) -> String{
+        guard let data = FileUtil.readAll(path) else{
+            return ""
+        }
+        guard let text = String(data: data, encoding: .utf8) else{
+            return ""
+        }
+        return text
+    }
+    
+    /**
+     * 写入数据
+     *  data 要写入的数据
+     *  isAppend 是否追加数据
+     */
+    public static func writeText(_ path: String, _ content: String, _ isAppend: Bool = false){
+        if let data = content.data(using: .utf8) {
+            FileUtil.write(path, data, isAppend)
+        }
+    }
+    
+    /**
+     写入数据
+     - Parameters:
+     - path 要写入的数据
+     - data 是否追加数据
+     */
+    public static func write(_ path: String, _ data: Data, _ isAppend: Bool = false){
+        
+        //判断文件是否存在,不存在先创建一个文件
+        //如果文件已经存在,再次创建文件时会把之前的文件内容清空,所以这里要先判断是否已经存在
+        if !FileManager.default.fileExists(atPath: path){//文件不存在时
+            let parentPath = FileUtil.getParentPath(path)
+            if !FileManager.default.fileExists(atPath: parentPath){//判断文件夹是否存在
+                
+                //创建文件夹
+                FileUtil.mkdirs(parentPath)
+            }
+            
+            //创建文件
+            FileManager.default.createFile(atPath: path, contents: data)
+            return
+        }
+        if !isAppend{//覆盖现有文件文件
+            FileManager.default.createFile(atPath: path, contents: data)
+            return
+        }
+        
+        //初始化一个可以写文件时工具
+        guard let writeFileHandle = FileHandle(forWritingAtPath: path) else{
+            return
+        }
+        
+        //追加写入文件
+        writeFileHandle.write(data)
+        try? writeFileHandle.close()
+    }
+    
+    /**
+     创建一个空文件
+     - Parameters:
+     - path 文件路径
+     */
+    public static func createEmptyFile(_ path: String){
+        if !FileManager.default.fileExists(atPath: path) {//文件不存在
+            let parentPath = FileUtil.getParentPath(path)
+            if !FileManager.default.fileExists(atPath: parentPath){//创建文件夹
+                FileUtil.mkdirs(parentPath)
+            }
+            
+            //创建文件
+            FileManager.default.createFile(atPath: path, contents: nil)
+        }
+    }
+    
+    /**
      * 创建多级目录
      */
-    static func mkdirs(_ path: String) -> Bool{
+    public static func mkdirs(_ path: String) -> Bool{
         let url = URL(string: "file://" + path)!
         
         // 如果文件夹不存在，则创建
@@ -72,7 +172,7 @@ class FileUtil{
      * 获取文件名
      * paramter path 当前文件路径
      */
-    static func getFileName(_ path: String) -> String{
+    public static func getFileName(_ path: String) -> String{
         
         //查找最后一个斜杠所在位置
         guard let lastSepIndex = path.lastIndex(of: "/") else {
@@ -86,7 +186,7 @@ class FileUtil{
      * 获取文件上级目录
      * paramter path 当前文件路径
      */
-    static func getParentPath(_ path: String) -> String{
+    public static func getParentPath(_ path: String) -> String{
         
         //查找最后一个斜杠所在位置
         guard let lastSepIndex = path.lastIndex(of: "/") else {
@@ -100,7 +200,7 @@ class FileUtil{
      * 获取文件后缀
      * paramter path 当前文件路径
      */
-    static func getExt(_ path: String) -> String{
+    public static func getExt(_ path: String) -> String{
         let filename = self.getFileName(path)
         
         //查找最后一个点所在位置
@@ -114,7 +214,7 @@ class FileUtil{
     /**
      * 获取文件大小
      */
-    static func getFileSize(_ path: String) -> Int64?{
+    public static func getFileSize(_ path: String) -> Int64?{
         guard let attr = try? FileManager.default.attributesOfItem(atPath: path) else{
             return nil
         }
@@ -129,21 +229,13 @@ class FileUtil{
      */
     public static func rename(source: String, target: String){
         let fileManager = FileManager.default
-
+        
         // 原路径（当前文件路径）
         let sourceURL = URL(fileURLWithPath: source)
-
+        
         // 新路径（新文件名）
         let targetURL = URL(fileURLWithPath: target)
         try? fileManager.moveItem(at: sourceURL, to: targetURL)
-    }
-    
-    /**
-     * 删除某个文件夹
-     */
-    static func deleteFolder(_ path: String) {
-        let fileManager = FileManager.default
-        try? fileManager.removeItem(atPath: path)
     }
     
     /**

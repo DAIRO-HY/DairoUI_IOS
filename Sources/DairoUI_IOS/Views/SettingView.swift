@@ -27,6 +27,8 @@ public struct SettingView: View {
             v
         case let v as SettingButton:
             v
+        case let v as SettingButtonSingle:
+            v
         case let v as SettingNavigationLink:
             v
         case let v as SettingToggle:
