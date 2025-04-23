@@ -3,7 +3,7 @@ import SwiftUI
 /**
  * 正在加载中动画
  */
-struct UCLoadingSub: View {
+struct LoadingAnimationView: View {
     
     /**
      * 动画显示表示
@@ -36,8 +36,6 @@ struct UCLoadingSub: View {
     }
 }
 
-struct UCLoadingSub_Previews: PreviewProvider {
-    static var previews: some View {
-        UCLoadingSub()
-    }
+#Preview {
+    LoadingAnimationView()
 }

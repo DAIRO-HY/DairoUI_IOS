@@ -8,7 +8,7 @@ struct UCToast: View {
     @StateObject var model = ToastViewModel()
     var body: some View {
         if self.model.mIsShowToast{
-            UCToastSub(self.model.mToastMessage)
+            ToastView()
                 .onAppear {// ビューが表示された時の処理
                     Task{
                         await Task.sleep(1_000_000_000)

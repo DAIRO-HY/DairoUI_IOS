@@ -4,7 +4,7 @@ import SwiftUI
  * 正在加载中动画
  */
 @available(iOS 14.0, *)
-struct UCLoading: View {
+struct LoadingView: View {
     
     /**
      * ViewModel
@@ -12,7 +12,7 @@ struct UCLoading: View {
     @StateObject var model = LoadingViewModel()
     var body: some View {
         if self.model.mIsLoading{
-            UCLoadingSub()
+            LoadingAnimationView()
         }else{
             EmptyView()
         }
@@ -23,6 +23,6 @@ struct UCLoading: View {
 @available(iOS 14.0, *)
 struct UCLoading_Previews: PreviewProvider {
     static var previews: some View {
-        UCLoading()
+        LoadingView()
     }
 }
