@@ -6,7 +6,7 @@ import func CommonCrypto.CC_MD5
 import typealias CommonCrypto.CC_LONG
 
 
-extension String {
+public extension String {
     
     /**
      * 转换成整型
@@ -70,7 +70,7 @@ extension String {
     /**
      * 获取字符串的MD5
      */
-    var md5:String {
+    public var md5:String {
         let inputData = Data(self.utf8)
         let hashed = Insecure.MD5.hash(data: inputData)
         let hashString = hashed.compactMap { String(format: "%02x", $0) }.joined()
@@ -80,15 +80,11 @@ extension String {
     /**
      * Url编码
      */
-    var urlEncode:String?{
-        // RFC3986 に準拠
-        // 変換対象外とする文字列（英数字と-._~）
-        let allowedCharacters = NSCharacterSet.alphanumerics.union(.init(charactersIn: "-._~"))
-        
-        if let encodedText = self.addingPercentEncoding(withAllowedCharacters: allowedCharacters) {
-            return encodedText
-        }
-        return nil
+    var urlEncode: String{
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: "&=+")
+        let encoded = self.addingPercentEncoding(withAllowedCharacters: allowed)
+        return encoded!
     }
     
     /**
@@ -111,28 +107,28 @@ extension String {
         return String(self[self.index(firstIndex,offsetBy: 1)...])
     }
     
-//    /**
-//     * 将图片地址转成一张图片
-//     */
-//    func urlImage(callback: @escaping (_ image: UIImage) -> Void){
-//        
-//        // 使用Kingfisher加载图片
-//        KingfisherManager.shared.retrieveImage(with: URL(string: self)!) { result in
-//            if case .success(let value) = result {
-//                // 加载成功时，获取UIImage并更新image属性
-//                DispatchQueue.main.async {
-//                    callback(value.image)
-//                }
-//            }
-//        }
-//    }
-//    
-//    /**
-//     * 将图片地址转成一张图片
-//     */
-//    var urlImage: KFImage{
-//        
-//        // 使用Kingfisher加载图片
-//        return KFImage(URL(string: self)!)
-//    }
+    //    /**
+    //     * 将图片地址转成一张图片
+    //     */
+    //    func urlImage(callback: @escaping (_ image: UIImage) -> Void){
+    //
+    //        // 使用Kingfisher加载图片
+    //        KingfisherManager.shared.retrieveImage(with: URL(string: self)!) { result in
+    //            if case .success(let value) = result {
+    //                // 加载成功时，获取UIImage并更新image属性
+    //                DispatchQueue.main.async {
+    //                    callback(value.image)
+    //                }
+    //            }
+    //        }
+    //    }
+    //
+    //    /**
+    //     * 将图片地址转成一张图片
+    //     */
+    //    var urlImage: KFImage{
+    //
+    //        // 使用Kingfisher加载图片
+    //        return KFImage(URL(string: self)!)
+    //    }
 }

@@ -3,7 +3,9 @@ import Foundation
 @testable import DairoUI_IOS
 
 @Test private func test() async throws {
-    let d = 2.05
-    let sdf = UInt64(d * 100)
-    print("-->end:\(sdf)")
+    var allowed = CharacterSet.urlQueryAllowed
+    allowed.remove(charactersIn: "&=+")
+    let paramValue = "你好&世界+测试="
+    let encoded = paramValue.addingPercentEncoding(withAllowedCharacters: allowed)
+    print(encoded ?? "编码失败")
 }

@@ -13,6 +13,7 @@ public struct RootView<Content>: View where Content: View {
     
     @StateObject public var rootVm = RootViewModel()
     
+    /// 子控件
     @ViewBuilder public var content: Content
     public init( @ViewBuilder content: () -> Content) {
         self.content = content()
@@ -20,7 +21,7 @@ public struct RootView<Content>: View where Content: View {
     public var body: some View {
         ZStack{
             self.content
-//            LoadingAnimationView()
+            LoadingAnimationView().environmentObject(self.rootVm)
             ToastView().environmentObject(self.rootVm)
         }.onAppear{
             RootViewManager.add(rootVm)
@@ -32,9 +33,11 @@ public struct RootView<Content>: View where Content: View {
 
 #Preview {
     RootView{
-        Text("243")
+        Button("按钮"){
+        }
     }.onAppear{
-        Toast.toastMessage = ToastMessage(delay: Double(Int.max), message: "消息内容")
+        Toast.show("Toast消息", delay: 10000000)
+        Loading.show()
     }
 }
 

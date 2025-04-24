@@ -24,7 +24,7 @@ public extension View {
             }
             return (uiScreen?.delegate as? UIWindowSceneDelegate)
         }()
-        screnDelegate?.window!?.rootViewController = UIHostingController(rootView: UCRoot{
+        screnDelegate?.window!?.rootViewController = UIHostingController(rootView: RootView{
             self
         })
 #endif

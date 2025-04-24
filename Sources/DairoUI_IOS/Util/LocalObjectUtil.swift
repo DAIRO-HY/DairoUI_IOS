@@ -54,7 +54,7 @@ public class LocalObjectUtil{
     /**
      * 从本地序列化文件读取到实列
      */
-    func read<T>(_ type: T.Type, _ name: String) -> T? where T: Decodable {
+    public static func read<T>(_ type: T.Type, _ name: String) -> T? where T: Decodable {
         
         //保存目录
         let path = LocalObjectUtil.mFolder + "/" + name

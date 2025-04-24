@@ -134,9 +134,8 @@ final public class HttpUtil: NSObject, URLSessionDataDelegate, URLSessionTaskDel
      * 添加请求数据参数
      */
     func addParam(_ key: String, _ value: Codable){
-        if let encode = String(describing: value).urlEncode {
-            self.requestBody += key + "=" + encode + "&"
-        }
+        let encode = String(describing: value).urlEncode
+        self.requestBody += key + "=" + encode + "&"
     }
     
     /**

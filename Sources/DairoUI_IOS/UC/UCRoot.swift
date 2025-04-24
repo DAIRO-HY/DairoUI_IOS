@@ -31,7 +31,7 @@ struct UCRoot<T>: View where T : View {
             Group(content: self.mContent)
             
             //加载中等待框
-            LoadingView()
+//            LoadingView()
             
             //Toast弹出式消息
             UCToast()

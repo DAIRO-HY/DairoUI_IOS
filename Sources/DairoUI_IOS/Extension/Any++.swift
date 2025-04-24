@@ -6,6 +6,7 @@
 //
 
 import ObjectiveC
+import SwiftUI
 
 /**
  比较两个变量值是否一样
