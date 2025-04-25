@@ -2,7 +2,7 @@ import Foundation
 /**
  * Toast弹出式消息工具类
  */
-public struct Toast{
+public enum Toast{
     
     ///Toast框逐渐消失的时间
     static let ANIMATION_LINEAR_TIME = 1

@@ -3,7 +3,7 @@
 //
 
 import Foundation
-class FileUtil{
+public enum FileUtil{
     
     /**
      * 程序启动时,先把需要的文件夹全部创建好

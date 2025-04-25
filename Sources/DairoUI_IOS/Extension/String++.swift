@@ -78,6 +78,13 @@ public extension String {
     }
     
     /**
+     * 去除空格（ ）、制表符（\t）、换行符（\n、\r）等字符。
+     */
+    public func trim() -> String {
+        return self.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    /**
      * Url编码
      */
     var urlEncode: String{

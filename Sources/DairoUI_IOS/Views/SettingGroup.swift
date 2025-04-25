@@ -14,6 +14,7 @@ import SwiftUI
 public struct SettingGroup: Setting {
     public var id: AnyHashable?
     public var header: String?
+    public var headerAction: (()->Void)?
     public var footer: String?
     public var allowAttributedFooter = true
     public var horizontalPadding: CGFloat?
@@ -27,6 +28,7 @@ public struct SettingGroup: Setting {
     public init(
         id: AnyHashable? = nil,
         header: String? = nil,
+        headerAction: (()->Void)? = nil,
         footer: String? = nil,
         allowAttributedFooter: Bool = true,
         horizontalPadding: CGFloat? = nil,
@@ -39,6 +41,7 @@ public struct SettingGroup: Setting {
     ) {
         self.id = id
         self.header = header
+        self.headerAction = headerAction
         self.footer = footer
         self.allowAttributedFooter = allowAttributedFooter
         self.horizontalPadding = horizontalPadding
@@ -58,6 +61,7 @@ public struct SettingGroupView<Content: View>: View {
 
     public var icon: SettingIcon?
     public var header: String?
+    public var headerAction: (()->Void)?
     public var footer: String?
     public var allowAttributedFooter = true
     public var horizontalPadding: CGFloat?
@@ -72,6 +76,7 @@ public struct SettingGroupView<Content: View>: View {
     public init(
         icon: SettingIcon? = nil,
         header: String? = nil,
+        headerAction: (()->Void)? = nil,
         footer: String? = nil,
         allowAttributedFooter: Bool = true,
         horizontalPadding: CGFloat? = nil,
@@ -85,6 +90,7 @@ public struct SettingGroupView<Content: View>: View {
     ) {
         self.icon = icon
         self.header = header
+        self.headerAction = headerAction
         self.footer = footer
         self.allowAttributedFooter = allowAttributedFooter
         self.horizontalPadding = horizontalPadding
@@ -105,12 +111,14 @@ public struct SettingGroupView<Content: View>: View {
                         SettingIconView(icon: icon)
                             .scaleEffect(0.6)
                     }
-
-                    if let header {
-                        Text(header)
-                            .textCase(.uppercase)
-                            .font(.system(.subheadline))
-                            .foregroundColor(foregroundColor ?? settingSecondaryColor)
+                    if let header{//如果header传递的是一个字符串
+                        if let headerAction{
+                            Button(action: headerAction){
+                                Text(header)
+                            }
+                        }else{
+                            Text(header).foregroundColor(foregroundColor ?? settingSecondaryColor)
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -129,8 +137,9 @@ public struct SettingGroupView<Content: View>: View {
             .mask {
                 RoundedRectangle(cornerRadius: backgroundCornerRadius, style: .continuous)
             }
-
-            if let footer {
+            
+            //加载footer
+            if let footer{//如果footer传递的是一个字符串
                 VStack {
                     if allowAttributedFooter {
                         Text(.init(footer)) /// Support markdown.

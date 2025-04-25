@@ -25,6 +25,8 @@ public struct SettingView: View {
         switch setting {
         case let v as SettingText:
             v
+        case let v as SettingLabel:
+            v
         case let v as SettingButton:
             v
         case let v as SettingButtonSingle:
@@ -91,6 +93,7 @@ public struct SettingView: View {
         case let group as SettingGroup:
             SettingGroupView(
                 header: group.header,
+                headerAction:group.headerAction,
                 footer: group.footer,
                 allowAttributedFooter: group.allowAttributedFooter,
                 horizontalPadding: group.horizontalPadding,

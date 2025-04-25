@@ -1,6 +1,6 @@
 import SwiftUI
 
-public class Loading{
+public enum Loading{
     private static let lock = NSLock()
     
     /**

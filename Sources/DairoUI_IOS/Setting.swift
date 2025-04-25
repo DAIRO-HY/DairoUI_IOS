@@ -19,21 +19,22 @@ public extension Setting {
     /**
      A unique identifier for the view.
      */
-    var identifier: AnyHashable {
-        if let id {
+    var identifier: AnyHashable? {
+        if let id = self.id {
             return id
         }
-
-        return textIdentifier
+        return self.textIdentifier
     }
 
     /**
      The identifier generated from the setting's title.
      */
-    var textIdentifier: String? {
+    var textIdentifier: AnyHashable? {
         switch self {
         case let text as SettingText:
             return text.title
+//        case let label as SettingLabel:
+//            return label.property.title
         case let button as SettingButton:
             return button.title
         case let button as SettingButtonSingle:
@@ -51,9 +52,9 @@ public extension Setting {
         case let page as SettingPage:
             return page.title
         case let group as SettingGroup:
-            return group.tuple.textIdentifier
+            return group.tuple.identifier
         case let tuple as SettingTupleView:
-            return tuple.flattened.compactMap { $0.textIdentifier }.joined()
+            return tuple.flattened.compactMap { "\($0.identifier)" }.joined()
         case let customView as SettingCustomView:
             return customView.titleForSearch ?? "Custom"
         default:
@@ -69,6 +70,8 @@ public extension Setting {
         switch self {
         case let v as SettingText:
             return v.title
+//        case let v as SettingLabel:
+//            return v.property.title
         case let v as SettingButton:
             return v.title
         case let v as SettingButtonSingle:

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public class LocalObjectUtil{
+public enum LocalObjectUtil{
     
     ///对象序列化保存文件夹
     nonisolated(unsafe) public static var folder: String? = nil
