@@ -18,7 +18,7 @@ public struct SettingButtonSingle: View, @preconcurrency Setting {
     public var action: () -> Void
     public init(
         id: AnyHashable? = nil,
-        title: String,
+        _ title: String,
         verticalPadding: CGFloat = CGFloat(14),
         action: @escaping () -> Void
     ) {

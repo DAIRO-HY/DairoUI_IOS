@@ -31,13 +31,13 @@ public struct SettingView: View {
             v
         case let v as SettingButtonSingle:
             v
-        case let v as SettingNavigationLink:
+        case let v as SettingNavigationLink<AnyView>:
             v
         case let v as SettingToggle:
             v
         case let v as SettingSlider:
             v
-        case let v as SettingPicker:
+        case let v as SettingPicker<Int>:
             v
         case let v as SettingTextField:
             v

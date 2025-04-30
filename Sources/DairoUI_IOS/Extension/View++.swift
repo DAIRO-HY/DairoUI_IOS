@@ -29,4 +29,8 @@ public extension View {
         })
 #endif
     }
+    
+    public var anyView: AnyView{
+        AnyView(self)
+    }
 }

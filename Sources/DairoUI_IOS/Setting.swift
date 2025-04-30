@@ -39,13 +39,13 @@ public extension Setting {
             return button.title
         case let button as SettingButtonSingle:
             return button.title
-        case let settingView as SettingNavigationLink:
+        case let settingView as SettingNavigationLink<AnyView>:
             return settingView.title
         case let toggle as SettingToggle:
             return toggle.title
         case is SettingSlider:
             return nil
-        case let picker as SettingPicker:
+        case let picker as SettingPicker<Int>:
             return picker.title
         case let textField as SettingTextField:
             return textField.title
@@ -76,13 +76,13 @@ public extension Setting {
             return v.title
         case let v as SettingButtonSingle:
             return v.title
-        case let v as SettingNavigationLink:
+        case let v as SettingNavigationLink<AnyView>:
             return v.title
         case let toggle as SettingToggle:
             return toggle.title
         case is SettingSlider:
             return nil
-        case let picker as SettingPicker:
+        case let picker as SettingPicker<Int>:
             return picker.title
         case let textField as SettingTextField:
             return textField.title

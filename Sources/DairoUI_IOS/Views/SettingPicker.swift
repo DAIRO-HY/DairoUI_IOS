@@ -11,12 +11,12 @@ import SwiftUI
 /**
  A multi-choice picker.
  */
-public struct SettingPicker: View, @preconcurrency Setting {
+public struct SettingPicker<T:Hashable>: View, @preconcurrency Setting {
     public var id: AnyHashable?
     public var icon: SettingIcon?
     public var title: String
-    public var data: [SettingPickerData]
-    @Binding public var value: AnyHashable?
+    public var data: [SettingPickerData<T>]
+    @Binding public var value: T
     public var foregroundColor: Color?
     public var horizontalSpacing = CGFloat(12)
     public var verticalPadding = CGFloat(14)
@@ -25,10 +25,9 @@ public struct SettingPicker: View, @preconcurrency Setting {
 
     public init(
         id: AnyHashable? = nil,
-        icon: SettingIcon? = nil,
-        title: String,
-        data: [SettingPickerData],
-        value: Binding<AnyHashable?>,
+        _ title: String,
+        data: [SettingPickerData<T>],
+        value: Binding<T>,
         foregroundColor: Color? = nil,
         horizontalSpacing: CGFloat = CGFloat(12),
         verticalPadding: CGFloat = CGFloat(14),
@@ -36,7 +35,6 @@ public struct SettingPicker: View, @preconcurrency Setting {
         choicesConfiguration: ChoicesConfiguration = ChoicesConfiguration()
     ) {
         self.id = id
-        self.icon = icon
         self.title = title
         self.data = data
         self._value = value
@@ -113,6 +111,25 @@ public struct SettingPicker: View, @preconcurrency Setting {
 
 /// Convenience modifiers.
 public extension SettingPicker {
+    
+    func icon(_ icon: String, color: Color = .blue) -> SettingPicker {
+        var view = self
+        view.icon = .system(icon: icon, backgroundColor: color)
+        return view
+    }
+    
+    func icon(_ icon: String, foregroundColor: Color = .white, backgroundColor: Color = .blue) -> SettingPicker {
+        var view = self
+        view.icon = .system(icon: icon, foregroundColor: foregroundColor, backgroundColor: backgroundColor)
+        return view
+    }
+    
+    func icon(icon: SettingIcon) -> SettingPicker {
+        var view = self
+        view.icon = icon
+        return view
+    }
+    
     func pickerDisplayMode(_ pickerDisplayMode: PickerDisplayMode) -> SettingPicker {
         var picker = self
         picker.choicesConfiguration.pickerDisplayMode = pickerDisplayMode
@@ -120,19 +137,19 @@ public extension SettingPicker {
     }
 }
 
-struct SettingPickerView: View {
+struct SettingPickerView<T:Hashable>: View {
     @Environment(\.edgePadding) var edgePadding
     @Environment(\.settingSecondaryColor) var settingSecondaryColor
 
     var icon: SettingIcon?
     let title: String
-    var data: [SettingPickerData]
-    @Binding var value: AnyHashable?
+    var data: [SettingPickerData<T>]
+    @Binding var value: T
     var foregroundColor: Color?
     var horizontalSpacing = CGFloat(12)
     var verticalPadding = CGFloat(14)
     var horizontalPadding: CGFloat? = nil
-    var choicesConfiguration = SettingPicker.ChoicesConfiguration()
+    var choicesConfiguration = SettingPicker<T>.ChoicesConfiguration()
 
     @State var isActive = false
 
@@ -153,7 +170,7 @@ struct SettingPickerView: View {
                         .padding(.vertical, verticalPadding)
 
                     if let selected = self.data.first(where: { $0.value == self.value }){
-                        Text(selected.label)
+                        Text(selected.label).font(.subheadline)
                             .foregroundColor(foregroundColor ?? settingSecondaryColor)
                     }
 
@@ -228,11 +245,11 @@ struct SettingPickerView: View {
     }
 }
 
-struct SettingPickerChoicesView: View {
+struct SettingPickerChoicesView<T:Hashable>: View {
     let title: String
-    var data: [SettingPickerData]
-    @Binding var value: AnyHashable?
-    var choicesConfiguration: SettingPicker.ChoicesConfiguration
+    var data: [SettingPickerData<T>]
+    @Binding var value: T
+    var choicesConfiguration: SettingPicker<T>.ChoicesConfiguration
 
     var body: some View {
         SettingPageView(title: title, navigationTitleDisplayMode: choicesConfiguration.pageNavigationTitleDisplayMode) {
@@ -281,15 +298,15 @@ struct SettingPickerChoicesView: View {
 /**
  * 设置选择器数据模型
  */
-public struct SettingPickerData:Hashable{
+public struct SettingPickerData<T:Hashable>: Hashable{
     
     // 显示文本
     public let label: String
     
     //值
-    public let value: AnyHashable?
+    public let value: T
     
-    public init(_ label: String, _ value: AnyHashable?) {
+    public init(_ label: String, _ value: T) {
         self.label = label
         self.value = value
     }
