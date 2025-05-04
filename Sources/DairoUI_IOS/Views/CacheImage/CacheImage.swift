@@ -40,6 +40,11 @@ public struct CacheImage: View{
     ///当前下载进度
     @State private var progress = ""
     
+    private var width: CGFloat = 200
+    private var height: CGFloat = 200
+    private var alignment: Alignment = .center
+    private var radius: CGFloat = 0
+    
     public init(_ url: String) {
         self.url = url
     }
@@ -51,9 +56,10 @@ public struct CacheImage: View{
         if let imagePath = CacheImageHelper.getDownloadedPath(url: self.url, folder: CacheImage.mCacheFolder){
             Image(uiImage: UIImage(contentsOfFile: imagePath)!)
                 .resizable()
-                .scaledToFit()
-                .cornerRadius(10)
-                .frame(width: 200, height: 300)
+                .aspectRatio(contentMode: .fill)
+                .frame(width: self.width, height: self.height, alignment: self.alignment)
+                .clipped()// 裁剪掉超出部分
+                .cornerRadius(self.radius)
         } else {
             // 加载中
             ZStack{
@@ -79,28 +85,32 @@ public struct CacheImage: View{
             .onDisappear{//视图被注销时,取消下载
                 CacheImageHelper.cancel(self.url)
             }
-            .frame(width: 200, height: 200)
+            .frame(width: self.width, height: self.height)
         }
     }
     
-    ///下载图片
-    private func download(){
-        //        let bridge = DownloadBridge.add(uid: self.uid, url: url, folder: CacheImage.mCacheFolder, progressFunc:{
-        //            print("当前下载进度:\($1.fileSize)/\($0.fileSize)  \($2.fileSize)")
-        //            let progressValue = String(Int(Float64($1)/Float64($0) * 100)) + "%"
-        //            DispatchQueue.main.async {
-        //                self.progress = progressValue
-        //            }
-        //        }){ err in
-        //            if err != nil{
-        //                debugPrint("下载出错:\(err)")
-        //            } else {
-        //                debugPrint("下载完成:\(Thread.isMainThread)")
-        //                DispatchQueue.main.async {
-        //                    self.freshImage += 1
-        //                }
-        //            }
-        //        }
+    /**
+     设置尺寸
+     */
+    public func frame(width: CGFloat? = nil, height: CGFloat? = nil, alignment: Alignment = .center) -> CacheImage{
+        var view = self
+        if let width{
+            view.width = width
+        }
+        if let height{
+            view.height = height
+        }
+        view.alignment = alignment
+        return view
+    }
+    
+    /**
+     设置圆角
+     */
+    public func cornerRadius(_ radius: CGFloat) -> CacheImage{
+        var view = self
+        view.radius = radius
+        return view
     }
 }
 #endif
