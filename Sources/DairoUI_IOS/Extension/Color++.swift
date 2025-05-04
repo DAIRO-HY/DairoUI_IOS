@@ -8,7 +8,7 @@ import SwiftUI
 
 //对颜色类的扩展
 extension Color: GLCompatible {}
-extension GL where Base == Color {
+public extension GL where Base == Color {
     static var black: Color { Color("black", bundle: .module) }//黑色
     static var white: Color { Color("white", bundle: .module) }//白色
     static var likeFavorite: Color { Color("likeFavorite", bundle: .module) }//喜欢的颜色

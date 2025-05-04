@@ -1,5 +1,5 @@
 //
-//  DownloadThread.swift
+//  CacheImageDownloader.swift
 //  DairoUI_IOS
 //
 //  Created by zhoulq on 2025/04/16.
@@ -8,14 +8,9 @@ import Foundation
 
 ///文件下载任务
 ///`TODO:是否需要判断同名文件已经在下载中
-public class DownloadThread{
+public class CacheImageDownloader{
     
     public static let DOWNLOADING_FILE_EXT = ".downloading"
-    
-    /**
-     * 进度回调函数类型别名
-     */
-    public typealias DownloadThreadProgressFuncType = ((_ total: Int64, _ downloaded: Int64, _ speed: Int64) -> ())
     
     /**
      * 同步锁
@@ -94,35 +89,8 @@ public class DownloadThread{
      */
     private var beforeFunc: ((_ statusCode: Int) -> Bool)?
     
-    /**
-     * 进度回调函数
-     */
-    private var progressFunc: DownloadThreadProgressFuncType?
-    
-    /**
-     * 下载完成回调函数
-     */
-    private let finishFunc: (_ info: DownloadingInfo, _ error: Error?) -> ()
-    
-    init(_ info: DownloadingInfo, finishFunc: @escaping (_ info: DownloadingInfo, _ error: Error?) -> ()) {
+    init(_ info: DownloadingInfo) {
         self.info = info
-        self.finishFunc = finishFunc
-    }
-    
-    /**
-     * 设置下载进度回调函数
-     */
-    func setProgressFunc(_ progressFunc: DownloadThreadProgressFuncType?) {
-        self.progressFunc = progressFunc
-    }
-    
-    /**
-     * 停止下载进度监听
-     */
-    func stopProgress(){
-        
-        //@TODO: 高并发模式会不会导致调用的地方发生空指针异常,待测试
-        self.progressFunc = nil
     }
     
     ///接收到消息时的回调
@@ -169,7 +137,8 @@ public class DownloadThread{
         if FileManager.default.fileExists(atPath: self.info.savePath) {//文件已经下载完成,无需重新下载
             
             //回调下载结束函数
-            self.finishFunc(self.info, nil)
+//            self.finishFunc(self.info, nil)
+            self.notify("f:nil")
             return
         }
         
@@ -252,9 +221,6 @@ public class DownloadThread{
         let nowTime = Int64(Date().timeIntervalSince1970 * 1000)
         if nowTime - self.lastWriteDataTime >= 500 {//0.5秒的间隔广播一次
             
-            //广播当前下载进度
-            //            EventUtil.post(EventCode.DOWNLOAD_PROGRESS, (self.downloadedSize, self.size))
-            
             //本次下载的大小
             let currentDownloadSize = self.downloadedSize - self.preDownloadedSize
             
@@ -271,7 +237,7 @@ public class DownloadThread{
             self.preDownloadedSize = self.downloadedSize
             
             //回调下载进度
-            self.progressFunc?(self.total, self.downloadedSize, speed)
+            self.notify("p:\(self.total):\(self.downloadedSize):\(speed)")
         }
     }
     
@@ -296,7 +262,8 @@ public class DownloadThread{
         self.isFinish = true
         
         //完成之后回调下载进度,避免出现下载进度无法100%
-        self.progressFunc?(self.total, self.downloadedSize, 0)
+//        self.progressFunc?(self.total, self.downloadedSize, 0)
+        self.notify("p:\(self.total):\(self.downloadedSize):0")
         
         //关闭文件操作
         try? self.writeFileHandle?.close()
@@ -308,7 +275,19 @@ public class DownloadThread{
         self.httpUtil = nil
         
         //回调下载结束函数
-        self.finishFunc(self.info, err)
+//        self.finishFunc(self.info, err)
+        self.notify("f:\(err)")
+        CacheImageHelper.finish(self.info.url)
+    }
+    
+    /**
+     发送官博通知
+     */
+    private func notify(_ msg: String){
+        let url = self.info.url
+        Task{ @MainActor in
+            NotificationCenter.default.post(name: Notification.Name(url), object: msg)
+        }
     }
     
     /**
@@ -322,6 +301,6 @@ public class DownloadThread{
     }
     
     deinit {
-        debugPrint("-->DownloadThread.deinit")
+        debugPrint("-->CacheImageDownloader.deinit")
     }
 }

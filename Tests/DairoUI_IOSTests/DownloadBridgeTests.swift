@@ -4,7 +4,7 @@ import Testing
 @Test func DownloadBridgeDownloadTest() async throws {
     print("-->start")
     
-    let url = "http://localhost:8031/d/oq8221/WechatIMG2.jpg?wait=0"
+    let url = "http://localhost:8031/d/oq8221/WechatIMG2.jpg?wait=1000"
     let folder = "/Users/zhoulq/Documents/11"
     
     if let path = DownloadBridge.getDownloadedPath(url: url, folder: folder){

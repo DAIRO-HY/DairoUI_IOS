@@ -10,7 +10,7 @@
 class DownloadTask {
     
   ///当前正在下载的列表
-    nonisolated(unsafe) static var downloadingId2Bridge = [String : DownloadBridge]()
+//    nonisolated(unsafe) static var downloadingId2Bridge = [String : DownloadBridge]()
 //
 //  ///同时下载数
 //  static var syncCount = SettingShared.downloadSyncCount;

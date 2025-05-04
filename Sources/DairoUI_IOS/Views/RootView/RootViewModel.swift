@@ -6,28 +6,24 @@
 //
 
 import Foundation
+import SwiftUI
 
 public class RootViewModel : ObservableObject{
     
     ///显示等待框
-    @Published public var toastFlag = false
-    
-    private var tag = Date().timeIntervalSince1970
+    @Published var toastFlag = false
     
     ///显示等待框
     @Published var showWaiting = false
     
-    ///显示等待框
-    @Published public var time = ""
-    
 #if DEBUG
     public init(){
-        debugPrint("-->RootViewModel.init.\(tag)")
+//        debugPrint("-->RootViewModel.init.\(tag)")
     }
     
     
     deinit{
-        debugPrint("-->RootViewModel.deinit.\(tag)")
+//        debugPrint("-->RootViewModel.deinit.\(tag)")
     }
 #endif
 }

@@ -2,10 +2,22 @@ import Testing
 import Foundation
 @testable import DairoUI_IOS
 
+struct Person: LocalObjectUtilEncodable,Codable {
+    var name: String
+    var age: Int
+    var city: String
+    
+    func toJSON() -> String {
+        return #"{"id":edfsv,"name":"\#(name)","date":"\#(city)"}"#
+    }
+}
+
 @Test private func test() async throws {
-    var allowed = CharacterSet.urlQueryAllowed
-    allowed.remove(charactersIn: "&=+")
-    let paramValue = "你好&世界+测试="
-    let encoded = paramValue.addingPercentEncoding(withAllowedCharacters: allowed)
-    print(encoded ?? "编码失败")
+//    let jsonData = Person(name: "sfsfs", age: 12, city: "贵阳市").toJSON().data(using: .utf8)!
+//    print(String(data: jsonData, encoding: .utf8)!)
+    
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys]
+    let jsonData = try! encoder.encode(Person(name: "sfsfs", age: 12, city: "贵阳市"))
+    print(String(data: jsonData, encoding: .utf8)!)
 }

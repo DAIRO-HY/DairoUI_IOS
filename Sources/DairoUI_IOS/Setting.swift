@@ -47,6 +47,14 @@ public extension Setting {
             return nil
         case let picker as SettingPicker<Int>:
             return picker.title
+        case let picker as SettingPicker<Int64>:
+            return picker.title
+        case let picker as SettingPicker<String>:
+            return picker.title
+        case let picker as SettingPicker<Float>:
+            return picker.title
+        case let picker as SettingPicker<Float64>:
+            return picker.title
         case let textField as SettingTextField:
             return textField.title
         case let page as SettingPage:
@@ -83,6 +91,14 @@ public extension Setting {
         case is SettingSlider:
             return nil
         case let picker as SettingPicker<Int>:
+            return picker.title
+        case let picker as SettingPicker<Int64>:
+            return picker.title
+        case let picker as SettingPicker<String>:
+            return picker.title
+        case let picker as SettingPicker<Float>:
+            return picker.title
+        case let picker as SettingPicker<Float64>:
             return picker.title
         case let textField as SettingTextField:
             return textField.title

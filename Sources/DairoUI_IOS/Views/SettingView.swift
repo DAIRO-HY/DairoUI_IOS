@@ -39,6 +39,14 @@ public struct SettingView: View {
             v
         case let v as SettingPicker<Int>:
             v
+        case let v as SettingPicker<Int64>:
+            v
+        case let v as SettingPicker<String>:
+            v
+        case let v as SettingPicker<Float>:
+            v
+        case let v as SettingPicker<Float64>:
+            v
         case let v as SettingTextField:
             v
         case let page as SettingPage:

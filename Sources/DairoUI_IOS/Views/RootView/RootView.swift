@@ -13,6 +13,8 @@ public struct RootView<Content>: View where Content: View {
     
     @StateObject public var rootVm = RootViewModel()
     
+    @AppStorage("theme") private var theme = 0
+    
     /// 子控件
     @ViewBuilder public var content: Content
     public init( @ViewBuilder content: () -> Content) {
@@ -23,7 +25,9 @@ public struct RootView<Content>: View where Content: View {
             self.content
             LoadingAnimationView().environmentObject(self.rootVm)
             ToastView().environmentObject(self.rootVm)
-        }.onAppear{
+        }
+        .preferredColorScheme(self.theme == 0 ? nil : (self.theme == 1 ? ColorScheme.light : ColorScheme.dark))
+        .onAppear{
             RootViewManager.add(rootVm)
         }.onDisappear{
             RootViewManager.remove(rootVm)

@@ -5,16 +5,16 @@
 //  Created by 周龙权 on 2021/9/6.
 //
 
-struct GL<Base> {
+public struct GL<Base> {
     var base: Base
     init(_ base: Base) {
         self.base = base
     }
 }
 
-protocol GLCompatible {}
-extension GLCompatible {
-    static var gl: GL<Self>.Type {
+public protocol GLCompatible {}
+public extension GLCompatible {
+    public static var gl: GL<Self>.Type {
         get { GL<Self>.self }
         set {}
     }
