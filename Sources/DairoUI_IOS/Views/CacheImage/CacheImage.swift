@@ -19,7 +19,7 @@ public struct CacheImage: View{
     /**
      * 获取歌曲存储目录
      */
-    private static var mCacheFolder: String {
+    public static var mCacheFolder: String {
         if CacheImage.cacheFolder == nil{
             
             //设置缓存目录
