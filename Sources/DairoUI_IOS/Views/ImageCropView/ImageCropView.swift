@@ -36,6 +36,7 @@ extension String {
 /**
  * 图片裁剪预览
  */
+#if os(iOS)
 @available(iOS 15.0, *)
 public struct ImageCropView: View {
     
@@ -227,3 +228,5 @@ struct ImageMoveAndScaleSheet_Previews: PreviewProvider {
         }
     }
 }
+
+#endif

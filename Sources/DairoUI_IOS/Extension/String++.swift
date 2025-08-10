@@ -11,56 +11,56 @@ public extension String {
     /**
      * 转换成整型
      */
-    var int: Int?{
+    public var int: Int?{
         return Int(self)
     }
     
     /**
      * 转换成整型
      */
-    var int64: Int64?{
+    public var int64: Int64?{
         return Int64(self)
     }
     
     /**
      * 转换成整型
      */
-    var int32: Int32?{
+    public var int32: Int32?{
         return Int32(self)
     }
     
     /**
      * 转换成整型
      */
-    var int16: Int16?{
+    public var int16: Int16?{
         return Int16(self)
     }
     
     /**
      * 转换成整型
      */
-    var int8: Int8?{
+    public var int8: Int8?{
         return Int8(self)
     }
     
     /**
      * 转换成Double型
      */
-    var double: Double?{
+    public var double: Double?{
         return Double(self)
     }
     
     /**
      * 转换成福地啊你¥型
      */
-    var float: Float?{
+    public var float: Float?{
         return Float(self)
     }
     
     /**
      * 获取字符串的SHA256
      */
-    var sha256:String{
+    public var sha256:String{
         if let stringData = self.data(using: String.Encoding.utf8) {
             return stringData.sha256()
         }
@@ -87,7 +87,7 @@ public extension String {
     /**
      * Url编码
      */
-    var urlEncode: String{
+    public var urlEncode: String{
         var allowed = CharacterSet.urlQueryAllowed
         allowed.remove(charactersIn: "&=+")
         let encoded = self.addingPercentEncoding(withAllowedCharacters: allowed)
@@ -97,7 +97,7 @@ public extension String {
     /**
      * 截取某个字符之前得字符串
      */
-    func before(_ before: Character) -> String?{
+    public func before(_ before: Character) -> String?{
         guard let firstIndex = self.firstIndex(of: before) else{
             return nil
         }
@@ -107,11 +107,27 @@ public extension String {
     /**
      * 截取某个字符以后得字符串
      */
-    func after(_ after: Character) -> String?{
+    public func after(_ after: Character) -> String?{
         guard let firstIndex = self.firstIndex(of: after) else{
             return nil
         }
         return String(self[self.index(firstIndex,offsetBy: 1)...])
+    }
+    
+    /**
+     * 获取绝对路径
+     */
+    public var absPath: String{
+        if self.hasPrefix("/"){//如果这个路径是以/开头,说明已经是绝对路径,原样返回即可
+            return self
+        }
+        return FileManager.default.currentDirectoryPath + "/" + self
+        
+//        if let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+//            let fileURL = documentsPath.appendingPathComponent(path)
+//            return fileURL.path
+//        }
+//        return ""
     }
     
     //    /**

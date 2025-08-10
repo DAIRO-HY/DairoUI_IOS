@@ -64,42 +64,6 @@ public class CacheImageHelper {
         CacheImageHelper.lock.unlock()
     }
     
-//    ///开始下载
-//    private static func download() {
-//        lock.lock()
-//        
-//        //准备下载的列表
-//        var prepareDownloads = [DownloadThread]()
-//        for item in CacheImageHelper.uid2Waiting{
-//            if CacheImageHelper.url2downloading.count >= CacheImageHelper.maxDownloadingCount{//限制并发数
-//                break
-//            }
-//            if CacheImageHelper.url2downloading.contains(where: {$0.key == item.value.url}){//该url正在下载中,跳过
-//                continue
-//            }
-//            
-//            //文件下载路径
-//            let path = CacheImageHelper.makeFilePath(url: item.value.url, folder: item.value.folder)
-//            let info = DownloadingInfo(savePath: path, url: item.value.url, uid: item.key)
-//            let dt = DownloadThread(info)
-//            CacheImageHelper.url2downloading[item.value.url] = dt
-//            CacheImageHelper.uid2downloading[item.key] = item.value
-//            prepareDownloads.append(dt)
-//        }
-//        
-//        CacheImageHelper.uid2downloading.forEach{//将正在下载的任务从uid排队列表中移除
-//            CacheImageHelper.uid2Waiting.removeValue(forKey: $0.key)
-//        }
-//        
-//        debugPrint("-->剩余请求数:\(CacheImageHelper.url2downloading.count)/\(CacheImageHelper.uid2Waiting.count)")
-//        lock.unlock()
-//        
-//        //开始下载不能放在锁(lock)内执行,如果文件已经下载完成,下载任务会立即回到finish函数,从而导致死锁
-//        prepareDownloads.forEach{
-//            $0.download()
-//        }
-//    }
-    
     /**
      * 取消下载
      */

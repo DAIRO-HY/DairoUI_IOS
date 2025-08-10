@@ -45,6 +45,9 @@ public struct CacheImage: View{
     private var alignment: Alignment = .center
     private var radius: CGFloat = 0
     
+    //填充模式
+    private var contentMode = ContentMode.fill
+    
     public init(_ url: String) {
         self.url = url
     }
@@ -56,7 +59,7 @@ public struct CacheImage: View{
         if let imagePath = CacheImageHelper.getDownloadedPath(url: self.url, folder: CacheImage.mCacheFolder){
             Image(uiImage: UIImage(contentsOfFile: imagePath)!)
                 .resizable()
-                .aspectRatio(contentMode: .fill)
+                .aspectRatio(contentMode: self.contentMode)
                 .frame(width: self.width, height: self.height, alignment: self.alignment)
                 .clipped()// 裁剪掉超出部分
                 .cornerRadius(self.radius)
@@ -101,6 +104,13 @@ public struct CacheImage: View{
             view.height = height
         }
         view.alignment = alignment
+        return view
+    }
+    
+    //设置填充模式
+    public func aspectRatio(_ contentMode: ContentMode) -> CacheImage{
+        var view = self
+        view.contentMode = contentMode
         return view
     }
     

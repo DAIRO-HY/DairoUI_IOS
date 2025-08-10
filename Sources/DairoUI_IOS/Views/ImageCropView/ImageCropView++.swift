@@ -10,6 +10,8 @@ import SwiftUI
 /**
  * 图片裁剪预览扩展
  */
+
+#if os(iOS)
 @available(iOS 15.0, *)
 extension ImageCropView {
     
@@ -125,3 +127,4 @@ extension ImageCropView {
         return subImage!
     }
 }
+#endif
