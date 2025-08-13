@@ -11,6 +11,16 @@ public enum DownloaderError: Error {
     case error(_ msg: String)
 }
 
+/// 下载通知状态
+public enum DownloadNotify: Sendable{
+    
+    /// 下载完成
+    case finish
+    
+    /// 下载进度
+    case progress
+}
+
 ///文件下载任务
 public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@unchecked Sendable{
     
@@ -96,7 +106,7 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
     /// 初始化函数
     /// - Parameter id: 文件唯一id
     /// - Parameter url: 下载地址
-    init(_ id: String,_ url: String, finishFunc: @escaping (String, Error?) -> Void) {
+    public init(_ id: String,_ url: String, finishFunc: @escaping (String, Error?) -> Void) {
         self.id = id
         self.url = url
         self.finishFunc = finishFunc
@@ -104,11 +114,11 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
     }
     
     /// 开始下载
-    func download(){
+    public func download(){
         if FileManager.default.fileExists(atPath: self.path) {//文件已经下载完成,无需重新下载
             
             //回调下载结束函数
-            self.notify("f:nil")
+            self.notify(.finish)
             Task.detached{//这里一定要异步,否则会造成死锁
                 self.finishFunc(self.id, nil)
             }
@@ -117,7 +127,7 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         Downloader.downloadingLock.lock()
         if Downloader.downloading.contains(self.id){//已经在下载
             Downloader.downloadingLock.unlock()
-            self.notify("f:防止重复下载")
+            self.notify(.finish, DownloaderError.error("防止重复下载"))
             Task.detached{//这里一定要异步,否则会造成死锁
                 self.finishFunc(self.id, DownloaderError.error("禁止重复下载"))
             }
@@ -243,8 +253,10 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
             self.lastWriteDataTime = nowTime
             self.preDownloadedSize = self.downloadedSize
             
+//            let progressData:[Int64] = [self.total, self.downloadedSize, speed]
+            
             //回调下载进度
-            self.notify("p:\(self.total):\(self.downloadedSize):\(speed)")
+            self.notify(.progress, [self.total, self.downloadedSize, speed])
         }
     }
     
@@ -252,6 +264,7 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         task.cancel()
         session.invalidateAndCancel()
         self.httpTask = nil
+        
         //        if let error = error{//如果有错误
         //            if let urlErr = error as? URLError{
         //                if urlErr.code.rawValue == -999{//用户已经取消
@@ -266,8 +279,6 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         //            }
         //        }
         //        self.finishFunc?(error)
-        
-        
         
         //关闭文件操作
         try? self.writeFileHandle?.close()
@@ -293,24 +304,27 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         self.isFinish = true
         
         //完成之后回调下载进度,避免出现下载进度无法100%
-        //        self.progressFunc?(self.total, self.downloadedSize, 0)
-        self.notify("p:\(self.total):\(self.downloadedSize):0")
+        self.notify(.progress, [self.total, self.downloadedSize, 0])
         
         //文件重命名
         try? FileManager.default.moveItem(at: URL(fileURLWithPath: self.path + self.DOWNLOADING_FILE_EXT), to: URL(fileURLWithPath: self.path))
         
         //回调下载结束函数
-        self.notify("f:\(err)")
+        self.notify(.finish, err)
         self.finishFunc(self.id, err)
     }
     
-    /**
-     发送通知
-     */
-    private func notify(_ msg: String){
-        let url = self.url
+    /// 发送通知
+    ///
+    /// - Parameter type:通知类型
+    /// - Parameter value:参数值
+    private func notify(_ type: DownloadNotify, _ value: Sendable? = nil){
         Task{ @MainActor in
-            NotificationCenter.default.post(name: Notification.Name(url), object: msg)
+            NotificationCenter.default.post(
+                name: Notification.Name(self.id),
+                object: nil,
+                userInfo: ["key": type, "value": value]
+            )
         }
     }
     
@@ -320,12 +334,16 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         self.httpTask?.cancel()
     }
     
-    //文件下载目录
+    //文件路径
     static func getPath(_ id: String) -> String{
-        return "/Users/zhoulq/dev/java/idea/DairoDFS/data/temp/" + id
+        return DownloadConst.saveFolder + "/" + id
     }
     
     deinit {
         debugPrint("-->Downloader.deinit")
     }
 }
+
+//struct MyData: Sendable {
+//    let type: DownloadNotify
+//}

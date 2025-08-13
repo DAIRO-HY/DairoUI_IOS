@@ -12,6 +12,42 @@ public enum DownloadDBUtilError: Error {
     case dbError(_ msg: String)
 }
 
+
+/// 下载信息
+public struct DownloadDto{
+    
+    /// 文件id
+    public let id: String
+    
+    /// 下载URL
+    public let  url: String
+    
+    /// 文件状态 0:等待下载 1:下载中 2:暂停中 3:下载失败  10:下载完成
+    public let state: Int32
+    
+    /// 文件保存方式 0:临时缓存 1:永久保存
+    public let  saveType: Int32
+    
+    /// 文件创建时间戳(秒)
+    public let  date: Int32
+    
+    /// 文件最后使用时间戳(秒)
+    public let useDate: Int32
+    
+    /// 文件下载失败的错误消息
+    public let  error: String?
+    
+    public init(id: String, url: String, state: Int32, saveType: Int32, date: Int32, useDate: Int32, error: String?) {
+        self.id = id
+        self.url = url
+        self.state = state
+        self.saveType = saveType
+        self.date = date
+        self.useDate = useDate
+        self.error = error
+    }
+}
+
 enum DownloadDBUtil{
     
     //数据操作锁,防止并发操作
@@ -19,23 +55,24 @@ enum DownloadDBUtil{
     
     ///数据库文件名
     //    private static let DB_FILE = "download.sqlite"
-    private static let DB_FILE = "/Users/zhoulq/dev/java/idea/DairoDFS/data/download.sqlite"
+//    private static let DB_FILE = "/Users/zhoulq/dev/java/idea/DairoDFS/data/download.sqlite"
+//    private static let DB_FILE = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("download.sqlite").path
     
     ///数据库操作静态实例
     nonisolated(unsafe) private static var mDB: OpaquePointer?
     
-//    ///已经下载的文件ID对应的文件路径
-//    nonisolated(unsafe) private static var id2path = DownloadDBUtil.selectDownloadedId2Path()
+    //    ///已经下载的文件ID对应的文件路径
+    //    nonisolated(unsafe) private static var id2path = DownloadDBUtil.selectDownloadedId2Path()
     
     
     static var db: OpaquePointer{
         if self.mDB != nil{
             return self.mDB!
         }
-        sqlite3_open(self.DB_FILE, &mDB)
-        //            let abs = DB_FILE.absPath
-        //            print(abs)
-        //            print(FileManager.default.fileExists(atPath: abs))
+        sqlite3_open(DownloadConst.dbFile, &mDB)
+//                    let abs = DownloadConst.dbFile.absPath
+//                    print(abs)
+//                    print(FileManager.default.fileExists(atPath: abs))
         self.initDb()
         return self.mDB!
     }
@@ -151,69 +188,69 @@ enum DownloadDBUtil{
         }
     }
     
-//    /// 通过文件id获取文件路径
-//    /// - Parameter id: 文件id
-//    /// - Returns 文件路径
-//    static func selectPathById(_ id: String) -> String?{
-//        
-//        //@TODO:这里需要加入二级缓存,加快读取速度
-//        var path: String? = nil
-//        let querySQL = "SELECT path FROM download WHERE id = ?;"
-//        var statement: OpaquePointer?
-//        self.lock.lock()
-//        
-//        // 准备 SQL 语句
-//        if sqlite3_prepare_v2(self.db, querySQL, -1, &statement, nil) == SQLITE_OK {
-//            sqlite3_bind_text(statement, 1, (id as NSString).utf8String, -1, nil)
-//            
-//            // 遍历查询结果
-//            if sqlite3_step(statement) == SQLITE_ROW {
-//                path = String(cString: sqlite3_column_text(statement, 0))
-//            }
-//            
-//            // 释放语句
-//            sqlite3_finalize(statement)
-//        } else {
-//            fatalError(String(cString: sqlite3_errmsg(self.db)))
-//        }
-//        self.lock.unlock()
-//        return path
-//    }
+    //    /// 通过文件id获取文件路径
+    //    /// - Parameter id: 文件id
+    //    /// - Returns 文件路径
+    //    static func selectPathById(_ id: String) -> String?{
+    //
+    //        //@TODO:这里需要加入二级缓存,加快读取速度
+    //        var path: String? = nil
+    //        let querySQL = "SELECT path FROM download WHERE id = ?;"
+    //        var statement: OpaquePointer?
+    //        self.lock.lock()
+    //
+    //        // 准备 SQL 语句
+    //        if sqlite3_prepare_v2(self.db, querySQL, -1, &statement, nil) == SQLITE_OK {
+    //            sqlite3_bind_text(statement, 1, (id as NSString).utf8String, -1, nil)
+    //
+    //            // 遍历查询结果
+    //            if sqlite3_step(statement) == SQLITE_ROW {
+    //                path = String(cString: sqlite3_column_text(statement, 0))
+    //            }
+    //
+    //            // 释放语句
+    //            sqlite3_finalize(statement)
+    //        } else {
+    //            fatalError(String(cString: sqlite3_errmsg(self.db)))
+    //        }
+    //        self.lock.unlock()
+    //        return path
+    //    }
     
-//    /// 通过文件id从缓存文件下载字典中获取文件路径
-//    /// - Parameter id: 文件id
-//    /// - Returns 文件路径
-//    static func selectPathByCache(_ id: String) -> String?{
-//        self.lock.lock()
-//        let path = self.id2path[id]
-//        self.lock.unlock()
-//        return path
-//    }
-//
-//    /// 获取已经下载的文件
-//    /// - Returns 文件id对应的文件路径
-//    private static func selectDownloadedId2Path() -> [String:String]{
-//        var id2path = [String:String]()
-//        let querySQL = "SELECT id,path FROM download WHERE state = 10;"
-//        var statement: OpaquePointer?
-//        
-//        // 准备 SQL 语句
-//        if sqlite3_prepare_v2(self.db, querySQL, -1, &statement, nil) == SQLITE_OK {
-//            
-//            // 遍历查询结果
-//            while sqlite3_step(statement) == SQLITE_ROW {
-//                let id = String(cString: sqlite3_column_text(statement, 0))
-//                let path = String(cString: sqlite3_column_text(statement, 1))
-//                id2path[id] = path
-//            }
-//            
-//            // 释放语句
-//            sqlite3_finalize(statement)
-//        } else {
-//            fatalError(String(cString: sqlite3_errmsg(self.db)))
-//        }
-//        return id2path
-//    }
+    //    /// 通过文件id从缓存文件下载字典中获取文件路径
+    //    /// - Parameter id: 文件id
+    //    /// - Returns 文件路径
+    //    static func selectPathByCache(_ id: String) -> String?{
+    //        self.lock.lock()
+    //        let path = self.id2path[id]
+    //        self.lock.unlock()
+    //        return path
+    //    }
+    //
+    //    /// 获取已经下载的文件
+    //    /// - Returns 文件id对应的文件路径
+    //    private static func selectDownloadedId2Path() -> [String:String]{
+    //        var id2path = [String:String]()
+    //        let querySQL = "SELECT id,path FROM download WHERE state = 10;"
+    //        var statement: OpaquePointer?
+    //
+    //        // 准备 SQL 语句
+    //        if sqlite3_prepare_v2(self.db, querySQL, -1, &statement, nil) == SQLITE_OK {
+    //
+    //            // 遍历查询结果
+    //            while sqlite3_step(statement) == SQLITE_ROW {
+    //                let id = String(cString: sqlite3_column_text(statement, 0))
+    //                let path = String(cString: sqlite3_column_text(statement, 1))
+    //                id2path[id] = path
+    //            }
+    //
+    //            // 释放语句
+    //            sqlite3_finalize(statement)
+    //        } else {
+    //            fatalError(String(cString: sqlite3_errmsg(self.db)))
+    //        }
+    //        return id2path
+    //    }
     
     /// 获取一条需要下载的数据
     /// - Returns 需要下载的文件id和文件路径
@@ -297,12 +334,12 @@ enum DownloadDBUtil{
         if let err{
             fatalError(err)
         }
-//        if state == 10{//如果当前下载状态为完成,则将该路径添加到缓存
-//            let path = self.selectPathById(id)
-//            self.lock.lock()
-//            self.id2path[id] = path
-//            self.lock.unlock()
-//        }
+        //        if state == 10{//如果当前下载状态为完成,则将该路径添加到缓存
+        //            let path = self.selectPathById(id)
+        //            self.lock.lock()
+        //            self.id2path[id] = path
+        //            self.lock.unlock()
+        //        }
     }
     
     /// 删除一个文件
@@ -338,48 +375,146 @@ enum DownloadDBUtil{
         self.lock.lock()
         
         //从已经下载缓存列表移除
-//        self.id2path.removeValue(forKey: id)
+        //        self.id2path.removeValue(forKey: id)
         self.lock.unlock()
     }
     
-//    /// 删除一个文件
-//    ///
-//    /// - Parameter id: 文件唯一id
-//    static func exec(_ sql: String, _ params: Any...){
-//        var statement: OpaquePointer?
-//        let err: String?
-//        self.lock.lock()
-//        if sqlite3_prepare_v2(self.db, sql, -1, &statement, nil) == SQLITE_OK {
-//            for i in params.indices{
-//                let value = params[i]
-//                if value is String{//如果参数是字符串类型
-//                    sqlite3_bind_text(statement, 1, (value as! NSString).utf8String, -1, nil)
-//                } else if value is Int{//如果参数是Int类型
-//                    sqlite3_bind_int64(statement, 1, Int64(value as! Int))
-//                } else if value is Int32{//如果参数是Int32类型
-//                    sqlite3_bind_int(statement, 1, value as! Int32)
-//                } else if value is Int64{//如果参数是Int64类型
-//                    sqlite3_bind_int64(statement, 1, value as! Int64)
-//                } else if value is Float64{//如果参数是Float64类型
-//                    sqlite3_bind_double(statement, 1, value as! Float64)
-//                } else if value is Float32{//如果参数是Float64类型
-//                    sqlite3_bind_double(statement, 1, Float64(value as! Float32))
-//                }
-//            }
-//            if sqlite3_step(statement) == SQLITE_DONE {
-//                err = nil
-//            } else {
-//                err = String(cString: sqlite3_errmsg(self.db))
-//            }
-//            sqlite3_finalize(statement)
-//        } else {
-//            err = "Prepare failed."
-//        }
-//        self.lock.unlock()
-//        if let err{
-//            fatalError(err)
-//        }
-//    }
+    //    /// 删除一个文件
+    //    ///
+    //    /// - Parameter id: 文件唯一id
+    //    static func exec(_ sql: String, _ params: Any...){
+    //        var statement: OpaquePointer?
+    //        let err: String?
+    //        self.lock.lock()
+    //        if sqlite3_prepare_v2(self.db, sql, -1, &statement, nil) == SQLITE_OK {
+    //            for i in params.indices{
+    //                let value = params[i]
+    //                if value is String{//如果参数是字符串类型
+    //                    sqlite3_bind_text(statement, 1, (value as! NSString).utf8String, -1, nil)
+    //                } else if value is Int{//如果参数是Int类型
+    //                    sqlite3_bind_int64(statement, 1, Int64(value as! Int))
+    //                } else if value is Int32{//如果参数是Int32类型
+    //                    sqlite3_bind_int(statement, 1, value as! Int32)
+    //                } else if value is Int64{//如果参数是Int64类型
+    //                    sqlite3_bind_int64(statement, 1, value as! Int64)
+    //                } else if value is Float64{//如果参数是Float64类型
+    //                    sqlite3_bind_double(statement, 1, value as! Float64)
+    //                } else if value is Float32{//如果参数是Float64类型
+    //                    sqlite3_bind_double(statement, 1, Float64(value as! Float32))
+    //                }
+    //            }
+    //            if sqlite3_step(statement) == SQLITE_DONE {
+    //                err = nil
+    //            } else {
+    //                err = String(cString: sqlite3_errmsg(self.db))
+    //            }
+    //            sqlite3_finalize(statement)
+    //        } else {
+    //            err = "Prepare failed."
+    //        }
+    //        self.lock.unlock()
+    //        if let err{
+    //            fatalError(err)
+    //        }
+    //    }
+    
+    /// 查询一条数据
+    /// - Parameter saveType: 文件保存方式
+    /// - Returns 文件路径
+    static func selectOne(_ id: String) -> DownloadDto?{
+        let querySQL = "SELECT state,saveType,date,useDate,error FROM download WHERE id = '\(id)';"
+        var statement: OpaquePointer?
+        
+        var dto: DownloadDto? = nil
+        self.lock.lock()
+        
+        // 准备 SQL 语句
+        if sqlite3_prepare_v2(self.db, querySQL, -1, &statement, nil) == SQLITE_OK {
+            
+            // 遍历查询结果
+            if sqlite3_step(statement) == SQLITE_ROW {
+                dto = DownloadDto(
+                    id: id,
+                    url: "",
+                    state: sqlite3_column_int(statement, 0),
+                    saveType: sqlite3_column_int(statement, 1),
+                    date: sqlite3_column_int(statement, 2),
+                    useDate: sqlite3_column_int(statement, 3),
+                    error: statement!.text(4)
+                )
+            }
+        } else {
+            fatalError(String(cString: sqlite3_errmsg(self.db)))
+        }
+        
+        // 释放语句
+        sqlite3_finalize(statement)
+        self.lock.unlock()
+        return dto
+    }
+    
+    /// 获取下载列表
+    /// - Parameter saveType: 文件保存方式
+    /// - Returns 文件路径
+    static func selectListBySaveType(_ saveType: Int) -> [DownloadDto]{
+        let querySQL = "SELECT id,state,date,useDate,error FROM download WHERE saveType = \(saveType);"
+        var statement: OpaquePointer?
+        
+        var list = [DownloadDto]()
+        self.lock.lock()
+        
+        // 准备 SQL 语句
+        if sqlite3_prepare_v2(self.db, querySQL, -1, &statement, nil) == SQLITE_OK {
+            
+            // 遍历查询结果
+            while sqlite3_step(statement) == SQLITE_ROW {
+                let dto = DownloadDto(
+                    id: String(cString: sqlite3_column_text(statement, 0)),
+                    url: "",
+                    state: sqlite3_column_int(statement, 1),
+                    saveType: Int32(saveType),
+                    date: sqlite3_column_int(statement, 2),
+                    useDate: sqlite3_column_int(statement, 3),
+                    error: statement!.text(4) ?? ""
+                )
+                list.append(dto)
+            }
+        } else {
+            fatalError(String(cString: sqlite3_errmsg(self.db)))
+        }
+        
+        // 释放语句
+        sqlite3_finalize(statement)
+        self.lock.unlock()
+        return list
+    }
+    
+    /// 通过保存方式获取下载数据
+    /// - Parameter saveType: 文件保存方式
+    /// - Returns 文件路径
+    static func selectIdBySaveType(_ saveType: Int) -> [String]{
+        let querySQL = "SELECT id FROM download WHERE saveType = \(saveType) ORDER BY useDate desc;"
+        var statement: OpaquePointer?
+        
+        var list = [String]()
+        self.lock.lock()
+        
+        // 准备 SQL 语句
+        if sqlite3_prepare_v2(self.db, querySQL, -1, &statement, nil) == SQLITE_OK {
+            
+            // 遍历查询结果
+            while sqlite3_step(statement) == SQLITE_ROW {
+                list.append(String(cString: sqlite3_column_text(statement, 0)))
+            }
+        } else {
+            fatalError(String(cString: sqlite3_errmsg(self.db)))
+        }
+        
+        // 释放语句
+        sqlite3_finalize(statement)
+        self.lock.unlock()
+        return list
+    }
     
     
     ///建表语句
@@ -392,8 +527,8 @@ enum DownloadDBUtil{
             url      VARCHAR(1024)           NOT NULL,              -- 下载URL
             state    INTEGER                 NOT NULL DEFAULT 0,-- 文件状态 0:等待下载 1:下载中 2:暂停中 3:下载失败  10:下载完成
             saveType INTEGER                 NOT NULL,          -- 文件保存方式 0:临时缓存 1:永久保存
-            date     INTEGER                 NOT NULL,          -- 文件创建时间戳
-            useDate  INTEGER                 NOT NULL,          -- 文件最后使用时间戳
+            date     INTEGER                 NOT NULL,          -- 文件创建时间戳(秒)
+            useDate  INTEGER                 NOT NULL,          -- 文件最后使用时间戳(秒)
             error    TEXT                    NULL               -- 文件下载失败的错误消息
         );
         CREATE INDEX index_state ON download (state);

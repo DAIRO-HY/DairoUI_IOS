@@ -70,7 +70,7 @@ public extension String {
     /**
      * 获取字符串的MD5
      */
-    public var md5:String {
+    var md5: String {
         let inputData = Data(self.utf8)
         let hashed = Insecure.MD5.hash(data: inputData)
         let hashString = hashed.compactMap { String(format: "%02x", $0) }.joined()
@@ -80,14 +80,14 @@ public extension String {
     /**
      * 去除空格（ ）、制表符（\t）、换行符（\n、\r）等字符。
      */
-    public func trim() -> String {
+    func trim() -> String {
         return self.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     /**
      * Url编码
      */
-    public var urlEncode: String{
+    var urlEncode: String{
         var allowed = CharacterSet.urlQueryAllowed
         allowed.remove(charactersIn: "&=+")
         let encoded = self.addingPercentEncoding(withAllowedCharacters: allowed)
@@ -97,7 +97,7 @@ public extension String {
     /**
      * 截取某个字符之前得字符串
      */
-    public func before(_ before: Character) -> String?{
+    func before(_ before: Character) -> String?{
         guard let firstIndex = self.firstIndex(of: before) else{
             return nil
         }
@@ -107,7 +107,7 @@ public extension String {
     /**
      * 截取某个字符以后得字符串
      */
-    public func after(_ after: Character) -> String?{
+    func after(_ after: Character) -> String?{
         guard let firstIndex = self.firstIndex(of: after) else{
             return nil
         }

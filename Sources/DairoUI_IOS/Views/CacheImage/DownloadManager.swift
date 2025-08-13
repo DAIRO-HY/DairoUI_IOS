@@ -7,16 +7,8 @@
 import Foundation
 
 
-public class DownloadManager {
-    
-    
-    /// 最大缓存文件下载上限
-    /// 缓存文件下载上限一定要大于保存文件下载上限,否则,当保存下载达到上限之后,缓存下载无法工作
-    private static let maxCachingCount = 4
-    
-    
-    /// 最大保存文件下载上限
-    private static let maxSavingCount = 3
+/// 下载管理
+public enum DownloadManager {
     
     /// 等待中的下载任务,用于临时缓存下载任务,如缓存图片等
     nonisolated(unsafe)  static var waitingId2url = [String : String]()
@@ -69,7 +61,7 @@ public class DownloadManager {
     private static func loopDownloadByWaiting(){
         self.lock.lock()
         for (id, url) in waitingId2url{
-            if self.id2download.count >= self.maxCachingCount{//当前下载并发数已到上限
+            if self.id2download.count >= DownloadConst.maxCachingCount{//当前下载并发数已到上限
                 break
             }
             
@@ -102,7 +94,7 @@ public class DownloadManager {
                 guard let needDownload = DownloadDBUtil.selectOneForNeedDownload() else{//如果没有需要下载的文件
                     break
                 }
-                if self.id2download.count >= self.maxSavingCount{//当前下载并发数已到上限
+                if self.id2download.count >= DownloadConst.maxSavingCount{//当前下载并发数已到上限
                     break
                 }
                 
@@ -146,8 +138,12 @@ public class DownloadManager {
     
     /// 某个id下载完成(不代表下载成功)
     private static func finish(_ id: String, _ err: Error?) {
-        if let err{//如果发生错误
-            DownloadDBUtil.updateState(id, 3,"\(err)")
+        if let err = err as? DownloaderError{//如果发生错误
+            if case let .error(msg) = err {
+                DownloadDBUtil.updateState(id, 3, msg)
+            }
+        } else if let err {
+            DownloadDBUtil.updateState(id, 3, err.localizedDescription)
         } else {//如果没有发生错误,则更新下载状态为下载完成
             DownloadDBUtil.updateState(id, 10)
         }
@@ -172,6 +168,12 @@ public class DownloadManager {
 //        }
 //        return nil
 //    }
+    
+    /// 删除一个文件
+    /// - Parameter id : 文件id
+    public static func delete(_ id: String){
+        DownloadDBUtil.delete(id)
+    }
     
     /// 获取已经下载了的文件
     /// - Parameter id: 文件唯一id
