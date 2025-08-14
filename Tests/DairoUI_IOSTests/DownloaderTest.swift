@@ -34,7 +34,7 @@ import Foundation
     if path == nil{
         fatalError("测试异常")
     }
-    DownloadDBUtil.delete("1144")
+    DownloadDBUtil.delete(["1144"])
     if  DownloadManager.getDownloadedPath("1144") != nil{
         fatalError("缓存列表没有被删除,异常结束")
     }

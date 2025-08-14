@@ -58,7 +58,7 @@ public enum DownloadManager {
     }
     
     /// 循环下载排队中的任务
-    private static func loopDownloadByWaiting(){
+    public static func loopDownloadByWaiting(){
         self.lock.lock()
         for (id, url) in waitingId2url{
             if self.id2download.count >= DownloadConst.maxCachingCount{//当前下载并发数已到上限
@@ -89,41 +89,43 @@ public enum DownloadManager {
     
     /// 循环下载数据库中需要下载的数据
     private static func loopDownloadByDB(){
-            self.lock.lock()
-            while true{
-                guard let needDownload = DownloadDBUtil.selectOneForNeedDownload() else{//如果没有需要下载的文件
-                    break
-                }
-                if self.id2download.count >= DownloadConst.maxSavingCount{//当前下载并发数已到上限
-                    break
-                }
-                
-                //防止下载被缓存操作取消
-                self.id2count[needDownload.id] = 999999999
-                
-                //将文件标记为正在下载中
-                DownloadDBUtil.updateState(needDownload.id, 1)
-                if self.id2download[needDownload.id] == nil{//这里需要先判断一下是否正在下载中,有可能缓存正在进行
-                    
-                    //创建一个下载任务
-                    self.id2download[needDownload.id] = Downloader(needDownload.id, needDownload.url, finishFunc: self.finish)
-                    
-                    //开始下载
-                    self.id2download[needDownload.id]!.download()
-                }
+        self.lock.lock()
+        while true{
+            guard let needDownload = DownloadDBUtil.selectOneForNeedDownload() else{//如果没有需要下载的文件
+                break
             }
-            self.lock.unlock()
+            if self.id2download.count >= DownloadConst.maxSavingCount{//当前下载并发数已到上限
+                break
+            }
+            
+            //防止下载被缓存操作取消
+            self.id2count[needDownload.id] = 999999999
+            
+            //将文件标记为正在下载中
+            DownloadDBUtil.updateState(needDownload.id, 1)
+            if self.id2download[needDownload.id] == nil{//这里需要先判断一下是否正在下载中,有可能缓存正在进行
+                
+                //创建一个下载任务
+                self.id2download[needDownload.id] = Downloader(needDownload.id, needDownload.url, finishFunc: self.finish)
+                
+                //开始下载
+                self.id2download[needDownload.id]!.download()
+            }
+        }
+        self.lock.unlock()
     }
     
     /// 取消下载
     /// 该函数只能取消临时缓存下载的任务,无法取消永久保存的下载任务
-    public static func cancel(_ id: String) {
+    /// - Parameter id: 文件id
+    /// - Parameter isForce: 是否强制取消下载,忽略掉排队的任务
+    public static func cancel(_ id: String, isForce: Bool = false) {
         self.lock.lock()
         guard let count = self.id2count[id] else{
             self.lock.unlock()
             return
         }
-        if count == 1{//如果当前只有一个下载线程,则结束掉下载任务
+        if count == 1 || isForce{//如果当前只有一个下载线程或者强制取消,则结束掉下载任务
             self.id2download[id]?.cancel()
             
             //已经在下载中的任务无需移除,Downloader的回调函数中会自动将其移除
@@ -136,6 +138,25 @@ public enum DownloadManager {
         self.lock.unlock()
     }
     
+    /// 取消所有下载
+    public static func cancelAll() {
+        self.lock.lock()
+        
+        //将数据标记为暂停
+        DownloadDBUtil.pauseAll()
+        self.id2download.forEach{
+            $0.value.cancel()
+        }
+        self.id2count.removeAll()
+        self.waitingId2url.removeAll()
+        self.lock.unlock()
+    }
+    
+    /// 开始所有下载
+    public static func startAll() {
+        DownloadDBUtil.startAll()
+    }
+    
     /// 某个id下载完成(不代表下载成功)
     private static func finish(_ id: String, _ err: Error?) {
         if let err = err as? DownloaderError{//如果发生错误
@@ -143,7 +164,11 @@ public enum DownloadManager {
                 DownloadDBUtil.updateState(id, 3, msg)
             }
         } else if let err {
-            DownloadDBUtil.updateState(id, 3, err.localizedDescription)
+            if let err = err as? URLError, err.code == .cancelled {//用户主动取消了请求,标记为暂停状态
+                DownloadDBUtil.updateState(id, 2)
+            } else {
+                DownloadDBUtil.updateState(id, 3, err.localizedDescription)
+            }
         } else {//如果没有发生错误,则更新下载状态为下载完成
             DownloadDBUtil.updateState(id, 10)
         }
@@ -156,23 +181,31 @@ public enum DownloadManager {
         self.loopDownloadByWaiting()
     }
     
-//    /// 获取已经下载了的文件
-//    /// - Parameter id: 文件唯一id
-//    /// - Returns 文件路径
-//    public static func getDownloadedPath(_ id: String) -> String?{
-//        guard let path = DownloadDBUtil.selectPathByCache(id) else{
-//            return nil
-//        }
-//        if FileManager.default.fileExists(atPath: path){
-//            return path
-//        }
-//        return nil
-//    }
-    
     /// 删除一个文件
     /// - Parameter id : 文件id
-    public static func delete(_ id: String){
-        DownloadDBUtil.delete(id)
+    public static func delete(_ ids: [String]){
+        
+        //从数据库中删除数据
+        DownloadDBUtil.delete(ids)
+        ids.forEach{//取消下载
+            self.cancel($0, isForce: true)
+        }
+        //取消网络请求需要一点时间,防止下载中的文件被占用导致删除失败
+        Thread.sleep(forTimeInterval: 0.1)
+        self.lock.lock()
+        ids.forEach{
+
+            //删除文件
+            let path = Downloader.getPath($0)
+            if FileManager.default.fileExists(atPath: path){//删除文件
+                try? FileManager.default.removeItem(atPath: path)
+            }
+            let downloadingPath = Downloader.getDownloadingPath($0)
+            if FileManager.default.fileExists(atPath: downloadingPath){//删除文件
+                try? FileManager.default.removeItem(atPath: downloadingPath)
+            }
+        }
+        self.lock.unlock()
     }
     
     /// 获取已经下载了的文件

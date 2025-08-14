@@ -15,7 +15,7 @@ enum DownloadConst{
     static let maxCachingCount = 4
     
     /// 最大保存文件下载上限
-    static let maxSavingCount = 1
+    static let maxSavingCount = 3
     
     /// 下载文件保存的文件夹
     static let saveFolder = DownloadConst.getSaveFolder()
@@ -39,7 +39,7 @@ enum DownloadConst{
     
     /// 获取数据库文件目录
     private static func getDBFile() -> String{
-        var dbURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("download.sqlite")
+        var dbURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("download3.sqlite")
         if !FileManager.default.fileExists(atPath: dbURL.path){//如果文件不存在,则创建文件
             
             //先创建一个空文件

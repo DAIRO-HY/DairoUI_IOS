@@ -13,11 +13,5 @@ struct Person: LocalObjectUtilEncodable,Codable {
 }
 
 @Test private func test() async throws {
-//    let jsonData = Person(name: "sfsfs", age: 12, city: "贵阳市").toJSON().data(using: .utf8)!
-//    print(String(data: jsonData, encoding: .utf8)!)
-    
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.sortedKeys]
-    let jsonData = try! encoder.encode(Person(name: "sfsfs", age: 12, city: "贵阳市"))
-    print(String(data: jsonData, encoding: .utf8)!)
+    print(["1","2"].joined(separator: ","))
 }

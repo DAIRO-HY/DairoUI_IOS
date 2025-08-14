@@ -14,6 +14,9 @@ public enum DownloaderError: Error {
 /// 下载通知状态
 public enum DownloadNotify: Sendable{
     
+    /// 下载暂停
+    case pause
+    
     /// 下载完成
     case finish
     
@@ -25,7 +28,7 @@ public enum DownloadNotify: Sendable{
 public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate,@unchecked Sendable{
     
     /// 下载中的文件后缀
-    private let DOWNLOADING_FILE_EXT = ".downloading"
+    public static let DOWNLOADING_FILE_EXT = ".downloading"
     
     //当前正在下载的id,防止同一个文件重复下载
     nonisolated(unsafe)  static var downloading = Set<String>()
@@ -141,10 +144,10 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         //            self.path = Downloader.savePath
         //            try! DownloadDBUtil.insert(id, self.path)
         //        }
-        if FileManager.default.fileExists(atPath: self.path + self.DOWNLOADING_FILE_EXT) {//临时文件已经存在,读取已经下载的大小继续下载
+        if FileManager.default.fileExists(atPath: self.path + Downloader.DOWNLOADING_FILE_EXT) {//临时文件已经存在,读取已经下载的大小继续下载
             
             //得到已下载大小
-            self.downloadedSize = FileUtil.getFileSize(self.path + self.DOWNLOADING_FILE_EXT)!
+            self.downloadedSize = FileUtil.getFileSize(self.path + Downloader.DOWNLOADING_FILE_EXT)!
         } else {
             self.downloadedSize = 0
         }
@@ -212,14 +215,17 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         
         //获取到文件总大小
         self.total = Int64(String(describing: contentLengthStr))! + self.downloadedSize
-        if !FileManager.default.fileExists(atPath: self.path + self.DOWNLOADING_FILE_EXT) {//文件不存在
+        if !FileManager.default.fileExists(atPath: self.path + Downloader.DOWNLOADING_FILE_EXT) {//文件不存在
             
             //创建文件,在写入文件之前必须要先创建一个空文件
-            FileManager.default.createFile(atPath: self.path + self.DOWNLOADING_FILE_EXT, contents: nil)
+            FileManager.default.createFile(atPath: self.path + Downloader.DOWNLOADING_FILE_EXT, contents: nil)
+            
+            //设置文件大小
+            DownloadDBUtil.setSize(self.id, self.total)
         }
         
         //初始化一个可以写文件工具
-        self.writeFileHandle = FileHandle(forWritingAtPath: self.path + self.DOWNLOADING_FILE_EXT)
+        self.writeFileHandle = FileHandle(forWritingAtPath: self.path + Downloader.DOWNLOADING_FILE_EXT)
         
         //将指针移动到文件末尾
         try! self.writeFileHandle?.seekToEnd()
@@ -291,10 +297,15 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         if err == nil{
             
             //当前下载的文件大小
-            let downloadedFileSize = FileUtil.getFileSize(self.path + self.DOWNLOADING_FILE_EXT)!
+            let downloadedFileSize = FileUtil.getFileSize(self.path + Downloader.DOWNLOADING_FILE_EXT)!
             if self.total != downloadedFileSize{//如果下载的文件不是一个完成的文件
                 err = DownloaderError.error("文件不完整,已下载文件大小:\(downloadedFileSize.fileSize), 服务端文件大小:\(self.total.fileSize)")
             }
+        }
+        if err == nil{//如果没有下载错误,则将文件重命名
+            
+            //文件重命名
+            try? FileManager.default.moveItem(at: URL(fileURLWithPath: self.path + Downloader.DOWNLOADING_FILE_EXT), to: URL(fileURLWithPath: self.path))
         }
         
         //移除正在下载
@@ -305,12 +316,15 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         
         //完成之后回调下载进度,避免出现下载进度无法100%
         self.notify(.progress, [self.total, self.downloadedSize, 0])
-        
-        //文件重命名
-        try? FileManager.default.moveItem(at: URL(fileURLWithPath: self.path + self.DOWNLOADING_FILE_EXT), to: URL(fileURLWithPath: self.path))
-        
-        //回调下载结束函数
-        self.notify(.finish, err)
+        if let err = err as? URLError, err.code == .cancelled {//用户主动取消了请求
+            
+            //回调下载结束函数
+            self.notify(.pause)
+        } else {
+            
+            //回调下载结束函数
+            self.notify(.finish, err)
+        }
         self.finishFunc(self.id, err)
     }
     
@@ -335,8 +349,13 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
     }
     
     //文件路径
-    static func getPath(_ id: String) -> String{
+    public static func getPath(_ id: String) -> String{
         return DownloadConst.saveFolder + "/" + id
+    }
+    
+    //文件路径
+    public static func getDownloadingPath(_ id: String) -> String{
+        return DownloadConst.saveFolder + "/" + id + Downloader.DOWNLOADING_FILE_EXT
     }
     
     deinit {

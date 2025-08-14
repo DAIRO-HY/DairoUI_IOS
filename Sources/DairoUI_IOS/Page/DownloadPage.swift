@@ -15,13 +15,16 @@ public struct DownloadPage: View {
     public init(){
     }
     public var body: some View {
-        ScrollView{
-            LazyVStack{
-                ForEach(self.vm.ids, id: \.self) { id in
-                    DownloadItemView(id)
+        VStack{
+            ScrollView{
+                LazyVStack{
+                    ForEach(self.vm.ids, id: \.self) { id in
+                        DownloadItemView(self.vm, id, self.vm.checked.contains(id))
+                    }
                 }
             }
-        }
+            DownloadOptionView().environmentObject(self.vm)
+        }.navigationTitle(self.vm.saveType == 0 ? "缓存":"下载")
     }
 }
 
@@ -40,7 +43,9 @@ struct DownloadTestage: View {
                 Button(action:{
                     var list = [(String,String)]()
                     for i in 1 ... 100{
-                        list.append(("id:\(i)", "http://localhost:8031/d/oq8221/%E7%9B%B8%E5%86%8C/1753616814872371.heic?wait=1000000"))
+                        let id = "id:\(i)"
+                        DownloadDBUtil.delete([id])
+                        list.append((id, "http://localhost:8031/d/oq8221/%E7%9B%B8%E5%86%8C/1753616814872371.heic?wait=100"))
                     }
                     try? DownloadManager.save(list)
                 }){
@@ -52,5 +57,5 @@ struct DownloadTestage: View {
 }
 
 #Preview {
-    DownloadPage()
+    DownloadTestage()
 }

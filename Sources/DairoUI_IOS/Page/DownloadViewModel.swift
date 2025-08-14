@@ -6,11 +6,72 @@
 //
 
 import Foundation
-class DownloadViewModel : ObservableObject{
+
+class DownloadItemBean{
+    
+    /// 文件id
+    let id: String
+    
+    /// 是否选中
+    var isChecked: Bool
+    
+    init(id: String, isChecked: Bool) {
+        self.id = id
+        self.isChecked = isChecked
+    }
+}
+
+public class DownloadViewModel : ObservableObject{
+    
+    /// 加载的列表的保存方式
+    @Published var saveType: Int8 = 1
     
     /// 文件id列表
-    @Published var ids: [String]
-    init(){
-        self.ids = DownloadDBUtil.selectIdBySaveType(1)
+    @Published var ids = [String]()
+    
+    /// 当前选中的id
+    @Published var checked = Set<String>()
+    public init(){
+        self.reload()
+    }
+    
+    /// 选中状态点击事件
+    func onCheckClick(_ id: String){
+        if self.checked.contains(id){
+            self.checked.remove(id)
+        } else {
+            self.checked.insert(id)
+        }
+    }
+    
+    /// 选择所有点击事件
+    func onCheckAllClick(){
+        self.ids.forEach{
+            self.checked.insert($0)
+        }
+    }
+    
+    /// 删除点击事件
+    func onDeleteClick(){
+        DownloadManager.delete(Array(self.checked))
+        self.reload()
+    }
+    
+    /// 暂停所有点击事件
+    func onPauseAllClick(){
+        DownloadManager.cancelAll()
+        self.reload()
+    }
+    
+    /// 开始所有点击事件
+    func onStartAllClick(){
+        DownloadManager.startAll()
+        DownloadManager.loopDownloadByWaiting()
+        self.reload()
+    }
+    
+    /// 重新加载数据
+    func reload(){
+        self.ids = DownloadDBUtil.selectIdBySaveType(self.saveType)
     }
 }

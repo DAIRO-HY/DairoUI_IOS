@@ -12,42 +12,6 @@ public enum DownloadDBUtilError: Error {
     case dbError(_ msg: String)
 }
 
-
-/// 下载信息
-public struct DownloadDto{
-    
-    /// 文件id
-    public let id: String
-    
-    /// 下载URL
-    public let  url: String
-    
-    /// 文件状态 0:等待下载 1:下载中 2:暂停中 3:下载失败  10:下载完成
-    public let state: Int32
-    
-    /// 文件保存方式 0:临时缓存 1:永久保存
-    public let  saveType: Int32
-    
-    /// 文件创建时间戳(秒)
-    public let  date: Int32
-    
-    /// 文件最后使用时间戳(秒)
-    public let useDate: Int32
-    
-    /// 文件下载失败的错误消息
-    public let  error: String?
-    
-    public init(id: String, url: String, state: Int32, saveType: Int32, date: Int32, useDate: Int32, error: String?) {
-        self.id = id
-        self.url = url
-        self.state = state
-        self.saveType = saveType
-        self.date = date
-        self.useDate = useDate
-        self.error = error
-    }
-}
-
 enum DownloadDBUtil{
     
     //数据操作锁,防止并发操作
@@ -55,8 +19,8 @@ enum DownloadDBUtil{
     
     ///数据库文件名
     //    private static let DB_FILE = "download.sqlite"
-//    private static let DB_FILE = "/Users/zhoulq/dev/java/idea/DairoDFS/data/download.sqlite"
-//    private static let DB_FILE = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("download.sqlite").path
+    //    private static let DB_FILE = "/Users/zhoulq/dev/java/idea/DairoDFS/data/download.sqlite"
+    //    private static let DB_FILE = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("download.sqlite").path
     
     ///数据库操作静态实例
     nonisolated(unsafe) private static var mDB: OpaquePointer?
@@ -70,9 +34,9 @@ enum DownloadDBUtil{
             return self.mDB!
         }
         sqlite3_open(DownloadConst.dbFile, &mDB)
-//                    let abs = DownloadConst.dbFile.absPath
-//                    print(abs)
-//                    print(FileManager.default.fileExists(atPath: abs))
+        //                    let abs = DownloadConst.dbFile.absPath
+        //                    print(abs)
+        //                    print(FileManager.default.fileExists(atPath: abs))
         self.initDb()
         return self.mDB!
     }
@@ -95,13 +59,19 @@ enum DownloadDBUtil{
     /// - Parameter path: 文件存储路径
     /// - Throws 错误消息
     static func addCache(_ id: String, _ url: String) throws{
+        
+        //获取文件名
+        let name = self.getFileNameByUrl(url)
+        
+        //当前时间戳
         let now = Int32(Date().timeIntervalSince1970)
-        let insertSQL = "INSERT INTO download(id, url, saveType, date, useDate) VALUES ('\(id)', ?, 0, \(now), \(now));"
+        let insertSQL = "INSERT INTO download(id, url, name, saveType, date, useDate) VALUES ('\(id)', ?, ?, 0, \(now), \(now));"
         var statement: OpaquePointer?
         let err: String?
         self.lock.lock()
         if sqlite3_prepare_v2(self.db, insertSQL, -1, &statement, nil) == SQLITE_OK {
             sqlite3_bind_text(statement, 1, (url as NSString).utf8String, -1, nil)
+            sqlite3_bind_text(statement, 2, (name as NSString).utf8String, -1, nil)
             if sqlite3_step(statement) == SQLITE_DONE {
                 err = nil
             } else {
@@ -123,8 +93,11 @@ enum DownloadDBUtil{
     /// - Parameter path: 文件存储路径
     /// - Throws 错误消息
     static func addSave(_ list: [(id: String, url: String)]) throws{
+        
+        
+        //当前时间戳
         let now = Int32(Date().timeIntervalSince1970)
-        let insertSQL = "INSERT INTO download(id, url, saveType, date, useDate) VALUES (?, ?, 1, \(now), \(now));"
+        let insertSQL = "INSERT INTO download(id, url, name, saveType, date, useDate) VALUES (?, ?, ?, 1, \(now), \(now));"
         var statement: OpaquePointer?
         var err: String?
         self.lock.lock()
@@ -136,8 +109,12 @@ enum DownloadDBUtil{
         var existsIds = [String]()
         if sqlite3_prepare_v2(self.db, insertSQL, -1, &statement, nil) == SQLITE_OK {
             for it in list{
+                
+                //获取文件名
+                let name = self.getFileNameByUrl(it.url)
                 sqlite3_bind_text(statement, 1, (it.id as NSString).utf8String, -1, nil)
                 sqlite3_bind_text(statement, 2, (it.url as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 3, (name as NSString).utf8String, -1, nil)
                 if sqlite3_step(statement) == SQLITE_DONE {
                     err = nil
                 } else {
@@ -186,6 +163,23 @@ enum DownloadDBUtil{
         if let err{
             throw DownloadDBUtilError.dbError(err)
         }
+    }
+    
+    /// 从url中获取文件名
+    static func getFileNameByUrl(_ url: String) -> String{
+        var path = url[url.range(of: "://")!.upperBound...]
+        if let slashIndex = path.firstIndex(of: "/"){
+            path = path[slashIndex...]
+            if let questionIndex = path.firstIndex(of: "?"){
+                path = path[..<questionIndex]
+            }
+        } else {
+            path = "/"
+        }
+        var lastSlashIndex = path.lastIndex(of: "/")!
+        lastSlashIndex = path.index(lastSlashIndex,offsetBy: 1)
+        let name = path[lastSlashIndex...]
+        return String(name)
     }
     
     //    /// 通过文件id获取文件路径
@@ -311,7 +305,7 @@ enum DownloadDBUtil{
     /// - Parameter state: 状态
     /// - Parameter error: 下载失败时的错误消息
     static func updateState(_ id: String, _ state: Int, _ error: String? = nil){
-        let updateSQL = "UPDATE download set state = \(state), error = ? where id = '\(id)';"
+        let updateSQL = "UPDATE download set state = \(state), error = ? where id = '\(id)' and state <> \(state);"
         var statement: OpaquePointer?
         let err: String?
         self.lock.lock()
@@ -342,23 +336,96 @@ enum DownloadDBUtil{
         //        }
     }
     
+    /// 暂停所有下载
+    static func pauseAll(){
+        let updateSQL = "UPDATE download set state = 2 where state in (0,1);"
+        var statement: OpaquePointer?
+        let err: String?
+        self.lock.lock()
+        if sqlite3_prepare_v2(self.db, updateSQL, -1, &statement, nil) == SQLITE_OK {
+            if sqlite3_step(statement) == SQLITE_DONE {
+                err = nil
+            } else {
+                err = String(cString: sqlite3_errmsg(self.db))
+            }
+            sqlite3_finalize(statement)
+        } else {
+            err = String(cString: sqlite3_errmsg(self.db))
+        }
+        self.lock.unlock()
+        if let err{
+            fatalError(err)
+        }
+    }
+    
+    /// 开始所有下载
+    static func startAll(){
+        let updateSQL = "UPDATE download set state = 0,error = null where state in (2,3);"
+        var statement: OpaquePointer?
+        let err: String?
+        self.lock.lock()
+        if sqlite3_prepare_v2(self.db, updateSQL, -1, &statement, nil) == SQLITE_OK {
+            if sqlite3_step(statement) == SQLITE_DONE {
+                err = nil
+            } else {
+                err = String(cString: sqlite3_errmsg(self.db))
+            }
+            sqlite3_finalize(statement)
+        } else {
+            err = String(cString: sqlite3_errmsg(self.db))
+        }
+        self.lock.unlock()
+        if let err{
+            fatalError(err)
+        }
+    }
+    
+    /// 设置文件大小
+    ///
+    /// - Parameter id: 文件唯一id
+    /// - Parameter size: 文件大小
+    public static func setSize(_ id: String, _ size: Int64){
+        let updateSQL = "UPDATE download set size = \(size) where id = '\(id)' and size = 0;"
+        var statement: OpaquePointer?
+        let err: String?
+        self.lock.lock()
+        if sqlite3_prepare_v2(self.db, updateSQL, -1, &statement, nil) == SQLITE_OK {
+            if sqlite3_step(statement) == SQLITE_DONE {
+                err = nil
+            } else {
+                err = String(cString: sqlite3_errmsg(self.db))
+            }
+            sqlite3_finalize(statement)
+        } else {
+            err = String(cString: sqlite3_errmsg(self.db))
+        }
+        self.lock.unlock()
+        if let err{
+            fatalError(err)
+        }
+    }
+    
     /// 删除一个文件
     ///
     /// - Parameter id: 文件唯一id
-    static func delete(_ id: String){
-        
-        //删除之前先获取文件路径,以便后续删除文件
-        let path = Downloader.getPath(id)
-        if FileManager.default.fileExists(atPath: path){//删除文件
-            try? FileManager.default.removeItem(atPath: path)
-        }
-        
-        let deleteSQL = "DELETE FROM download where id = ?;"
+    static func delete(_ ids: [String]){
+//        ids.forEach{
+//            
+//            //删除文件
+//            let path = Downloader.getPath($0)
+//            if FileManager.default.fileExists(atPath: path){//删除文件
+//                try? FileManager.default.removeItem(atPath: path)
+//            }
+//            let downloadingPath = Downloader.getDownloadingPath($0)
+//            if FileManager.default.fileExists(atPath: downloadingPath){//删除文件
+//                try? FileManager.default.removeItem(atPath: downloadingPath)
+//            }
+//        }
+        let deleteSQL = "DELETE FROM download where id in ('\(ids.joined(separator: "','"))');"
         var statement: OpaquePointer?
         let err: String?
         self.lock.lock()
         if sqlite3_prepare_v2(self.db, deleteSQL, -1, &statement, nil) == SQLITE_OK {
-            sqlite3_bind_text(statement, 1, (id as NSString).utf8String, -1, nil)
             if sqlite3_step(statement) == SQLITE_DONE {
                 err = nil
             } else {
@@ -372,11 +439,6 @@ enum DownloadDBUtil{
         if let err{
             fatalError(err)
         }
-        self.lock.lock()
-        
-        //从已经下载缓存列表移除
-        //        self.id2path.removeValue(forKey: id)
-        self.lock.unlock()
     }
     
     //    /// 删除一个文件
@@ -422,7 +484,7 @@ enum DownloadDBUtil{
     /// - Parameter saveType: 文件保存方式
     /// - Returns 文件路径
     static func selectOne(_ id: String) -> DownloadDto?{
-        let querySQL = "SELECT state,saveType,date,useDate,error FROM download WHERE id = '\(id)';"
+        let querySQL = "SELECT name,size,state,saveType,date,useDate,error FROM download WHERE id = '\(id)';"
         var statement: OpaquePointer?
         
         var dto: DownloadDto? = nil
@@ -436,11 +498,13 @@ enum DownloadDBUtil{
                 dto = DownloadDto(
                     id: id,
                     url: "",
-                    state: sqlite3_column_int(statement, 0),
-                    saveType: sqlite3_column_int(statement, 1),
-                    date: sqlite3_column_int(statement, 2),
-                    useDate: sqlite3_column_int(statement, 3),
-                    error: statement!.text(4)
+                    name: statement!.text(0),
+                    size: statement!.int64(1),
+                    state: statement!.int8(2),
+                    saveType: statement!.int8(3),
+                    date: statement!.int(4),
+                    useDate: statement!.int(5),
+                    error: statement!.textOrNil(6)
                 )
             }
         } else {
@@ -456,8 +520,8 @@ enum DownloadDBUtil{
     /// 获取下载列表
     /// - Parameter saveType: 文件保存方式
     /// - Returns 文件路径
-    static func selectListBySaveType(_ saveType: Int) -> [DownloadDto]{
-        let querySQL = "SELECT id,state,date,useDate,error FROM download WHERE saveType = \(saveType);"
+    static func selectListBySaveType(_ saveType: Int8) -> [DownloadDto]{
+        let querySQL = "SELECT id,name,state,date,useDate,error FROM download WHERE saveType = \(saveType);"
         var statement: OpaquePointer?
         
         var list = [DownloadDto]()
@@ -469,13 +533,15 @@ enum DownloadDBUtil{
             // 遍历查询结果
             while sqlite3_step(statement) == SQLITE_ROW {
                 let dto = DownloadDto(
-                    id: String(cString: sqlite3_column_text(statement, 0)),
+                    id: statement!.text(0),
                     url: "",
-                    state: sqlite3_column_int(statement, 1),
-                    saveType: Int32(saveType),
-                    date: sqlite3_column_int(statement, 2),
-                    useDate: sqlite3_column_int(statement, 3),
-                    error: statement!.text(4) ?? ""
+                    name: statement!.text(1),
+                    size: statement!.int64(2),
+                    state: statement!.int8(3),
+                    saveType: saveType,
+                    date: statement!.int(4),
+                    useDate: statement!.int(5),
+                    error: statement!.textOrNil(4)
                 )
                 list.append(dto)
             }
@@ -492,7 +558,7 @@ enum DownloadDBUtil{
     /// 通过保存方式获取下载数据
     /// - Parameter saveType: 文件保存方式
     /// - Returns 文件路径
-    static func selectIdBySaveType(_ saveType: Int) -> [String]{
+    static func selectIdBySaveType(_ saveType: Int8) -> [String]{
         let querySQL = "SELECT id FROM download WHERE saveType = \(saveType) ORDER BY useDate desc;"
         var statement: OpaquePointer?
         
@@ -524,12 +590,14 @@ enum DownloadDBUtil{
         CREATE TABLE download
         (
             id       VARCHAR(32) PRIMARY KEY NOT NULL,
-            url      VARCHAR(1024)           NOT NULL,              -- 下载URL
+            url      VARCHAR(1024)           NOT NULL,           -- 下载URL
+            name     VARCHAR(128)            NOT NULL,           -- 文件名
+            size     INTEGER                 NOT NULL DEFAULT 0, -- 文件大小
             state    INTEGER                 NOT NULL DEFAULT 0,-- 文件状态 0:等待下载 1:下载中 2:暂停中 3:下载失败  10:下载完成
-            saveType INTEGER                 NOT NULL,          -- 文件保存方式 0:临时缓存 1:永久保存
-            date     INTEGER                 NOT NULL,          -- 文件创建时间戳(秒)
-            useDate  INTEGER                 NOT NULL,          -- 文件最后使用时间戳(秒)
-            error    TEXT                    NULL               -- 文件下载失败的错误消息
+            saveType INTEGER                 NOT NULL,           -- 文件保存方式 0:临时缓存 1:永久保存
+            date     INTEGER                 NOT NULL,           -- 文件创建时间戳(秒)
+            useDate  INTEGER                 NOT NULL,           -- 文件最后使用时间戳(秒)
+            error    TEXT                    NULL                -- 文件下载失败的错误消息
         );
         CREATE INDEX index_state ON download (state);
         CREATE INDEX index_saveType ON download (saveType);
