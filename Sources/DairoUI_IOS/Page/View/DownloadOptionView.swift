@@ -36,7 +36,9 @@ struct DownloadOptionView: View {
                             .foregroundColor(Color.gl.black)
                             .background(self.vm.saveType == 0 ? Color.clear : .secondary)
                             .opacity(self.vm.saveType == 0 ? 1 : 0.3)
-                    }.border(Color.black, width: 2)
+                    }
+                    .border(Color.gl.black, width: 1)
+                    .font(.footnote)
                 }
             }.padding(.horizontal, 5)
             Divider()

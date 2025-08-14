@@ -15,7 +15,7 @@ public struct DownloadPage: View {
     public init(){
     }
     public var body: some View {
-        VStack{
+        VStack(spacing: 0){
             ScrollView{
                 LazyVStack{
                     ForEach(self.vm.ids, id: \.self) { id in

@@ -54,6 +54,7 @@ public class DownloadViewModel : ObservableObject{
     /// 删除点击事件
     func onDeleteClick(){
         DownloadManager.delete(Array(self.checked))
+        self.checked.removeAll()
         self.reload()
     }
     
