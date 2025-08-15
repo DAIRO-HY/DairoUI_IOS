@@ -22,7 +22,10 @@ public struct SettingPicker<T:Hashable>: View, @preconcurrency Setting {
     public var verticalPadding = CGFloat(14)
     public var horizontalPadding: CGFloat?
     public var choicesConfiguration = ChoicesConfiguration()
-
+    
+    /// 值改变时回调函数
+    public let changeFunc: (_ value: T)->Bool
+    
     public init(
         id: AnyHashable? = nil,
         _ title: String,
@@ -32,7 +35,10 @@ public struct SettingPicker<T:Hashable>: View, @preconcurrency Setting {
         horizontalSpacing: CGFloat = CGFloat(12),
         verticalPadding: CGFloat = CGFloat(14),
         horizontalPadding: CGFloat? = nil,
-        choicesConfiguration: ChoicesConfiguration = ChoicesConfiguration()
+        choicesConfiguration: ChoicesConfiguration = ChoicesConfiguration(),
+        changeFunc: @escaping (_ value: T)->Bool = { _ in
+            return true
+        }
     ) {
         self.id = id
         self.title = title
@@ -43,14 +49,15 @@ public struct SettingPicker<T:Hashable>: View, @preconcurrency Setting {
         self.verticalPadding = verticalPadding
         self.horizontalPadding = horizontalPadding
         self.choicesConfiguration = choicesConfiguration
+        self.changeFunc = changeFunc
     }
-
+    
     public enum PickerDisplayMode {
         case navigation
         case menu
         case inline
     }
-
+    
     public struct ChoicesConfiguration {
         public var verticalPadding = CGFloat(14)
         public var horizontalPadding: CGFloat?
@@ -64,7 +71,7 @@ public struct SettingPicker<T:Hashable>: View, @preconcurrency Setting {
         public var groupDividerLeadingMargin = CGFloat(16)
         public var groupDividerTrailingMargin = CGFloat(0)
         public var groupDividerColor: Color?
-
+        
         public init(
             verticalPadding: CGFloat = CGFloat(14),
             horizontalPadding: CGFloat? = nil,
@@ -93,18 +100,19 @@ public struct SettingPicker<T:Hashable>: View, @preconcurrency Setting {
             self.groupDividerColor = groupDividerColor
         }
     }
-
+    
     public var body: some View {
         SettingPickerView(
-            icon: icon,
-            title: title,
-            data: data,
+            icon: self.icon,
+            title: self.title,
+            data: self.data,
             value: self.$value,
-            foregroundColor: foregroundColor,
-            horizontalSpacing: horizontalSpacing,
-            verticalPadding: verticalPadding,
-            horizontalPadding: horizontalPadding,
-            choicesConfiguration: choicesConfiguration
+            foregroundColor: self.foregroundColor,
+            horizontalSpacing: self.horizontalSpacing,
+            verticalPadding: self.verticalPadding,
+            horizontalPadding: self.horizontalPadding,
+            choicesConfiguration: self.choicesConfiguration,
+            changeFunc: self.changeFunc
         )
     }
 }
@@ -140,7 +148,7 @@ public extension SettingPicker {
 struct SettingPickerView<T:Hashable>: View {
     @Environment(\.edgePadding) var edgePadding
     @Environment(\.settingSecondaryColor) var settingSecondaryColor
-
+    
     var icon: SettingIcon?
     let title: String
     var data: [SettingPickerData<T>]
@@ -150,9 +158,15 @@ struct SettingPickerView<T:Hashable>: View {
     var verticalPadding = CGFloat(14)
     var horizontalPadding: CGFloat? = nil
     var choicesConfiguration = SettingPicker<T>.ChoicesConfiguration()
-
+    
+    /// 值改变时回调函数
+    var changeFunc: (_ value: T)->Bool
+    
     @State var isActive = false
-
+    
+    /// 临时值,menu模式时,用来还原初始值
+    @State var tempValue: T? = nil
+    
     var body: some View {
         switch choicesConfiguration.pickerDisplayMode {
         case .navigation:
@@ -163,17 +177,17 @@ struct SettingPickerView<T:Hashable>: View {
                     if let icon {
                         SettingIconView(icon: icon)
                     }
-
+                    
                     Text(title)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, verticalPadding)
-
+                    
                     if let selected = self.data.first(where: { $0.value == self.value }){
                         Text(selected.label).font(.subheadline)
                             .foregroundColor(foregroundColor ?? settingSecondaryColor)
                     }
-
+                    
                     Image(systemName: "chevron.forward")
                         .foregroundColor(foregroundColor ?? settingSecondaryColor)
                 }
@@ -184,73 +198,118 @@ struct SettingPickerView<T:Hashable>: View {
             .background {
                 NavigationLink(isActive: $isActive) {
                     SettingPickerChoicesView(
-                        title: title,
-                        data: data,
+                        title: self.title,
+                        data: self.data,
                         value: self.$value,
-                        choicesConfiguration: choicesConfiguration
+                        choicesConfiguration: self.choicesConfiguration,
+                        changeFunc: self.changeFunc
                     )
                 } label: {
                     EmptyView()
                 }
                 .opacity(0)
             }
-
+            
         case .menu:
             HStack(spacing: horizontalSpacing) {
                 if let icon {
                     SettingIconView(icon: icon)
                 }
-
-                Text(title)
+                
+                Text(self.title)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, verticalPadding)
+                    .padding(.vertical, self.verticalPadding)
                 
                 let index = self.data.firstIndex(where: { $0.value == self.value })
                 Picker("", selection: self.$value) {
-                    ForEach(Array(zip(data.indices, data)), id: \.1) { index, item in
+                    ForEach(Array(zip(self.data.indices, self.data)), id: \.1) { index, item in
                         Text(item.label).tag(item.value)
                     }
                 }
                 .pickerStyle(.menu)
-                #if os(iOS)
-                    .padding(.trailing, -edgePadding + 2)
-                #else
-                    .padding(.trailing, -2)
-                #endif
-                    .tint(foregroundColor ?? settingSecondaryColor)
+                .onChange(of: self.value){ newValue in
+                    if self.changeFunc(newValue){//允许改变
+                        self.tempValue = newValue
+                    } else {
+                        self.value = self.tempValue!
+                    }
+                }
+#if os(iOS)
+                .padding(.trailing, -edgePadding + 2)
+#else
+                .padding(.trailing, -2)
+#endif
+                .tint(foregroundColor ?? settingSecondaryColor)
             }
             .padding(.horizontal, horizontalPadding ?? edgePadding)
             .accessibilityElement(children: .combine)
+            .onAppear{
+                self.tempValue = self.value
+            }
         case .inline:
-            ForEach(Array(zip(data.indices, data)), id: \.1) { index, item in
-                Button {
-                    self.value = item.value
-                } label: {
-                    HStack {
-                        Text(item.label)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, choicesConfiguration.verticalPadding)
-
-                        if item.value == self.value {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(.accentColor)
-                        }
+            VStack{
+                HStack(spacing: self.horizontalSpacing) {
+                    if let icon {
+                        SettingIconView(icon: icon)
                     }
-                    .padding(.horizontal, choicesConfiguration.horizontalPadding)
+                    
+                    Text(self.title)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, self.verticalPadding)
+                    
+                    Image(systemName: "chevron.down")
+                        .foregroundColor(foregroundColor ?? settingSecondaryColor)
                 }
-                .buttonStyle(.row)
+                .padding(.horizontal, horizontalPadding ?? edgePadding)
+                .accessibilityElement(children: .combine)
+                Divider()
+                ForEach(Array(zip(self.data.indices, self.data)), id: \.1) { index, item in
+                    Button {
+                        if self.changeFunc(item.value){//允许改变
+                            self.value = item.value
+                        }
+                    } label: {
+                        HStack {
+                            Text(item.label)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, choicesConfiguration.verticalPadding)
+                            
+                            if item.value == self.value {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.accentColor)
+                                    .frame(width: 10,height:10)
+                            }
+                        }
+                        .padding(.horizontal, choicesConfiguration.horizontalPadding)
+                    }
+                    .buttonStyle(.row)
+                }
             }
         }
     }
 }
 
 struct SettingPickerChoicesView<T:Hashable>: View {
+    
+    @Environment(\.dismiss) var dismiss
+    
+    /// 显示标题
     let title: String
+    
+    /// 选择数据
     var data: [SettingPickerData<T>]
+    
+    /// 当前选中的值
     @Binding var value: T
+    
+    /// 显示模式
     var choicesConfiguration: SettingPicker<T>.ChoicesConfiguration
-
+    
+    /// 值改变时回调函数
+    var changeFunc: (_ value: T)->Bool
+    
     var body: some View {
         SettingPageView(title: title, navigationTitleDisplayMode: choicesConfiguration.pageNavigationTitleDisplayMode) {
             let settingGroupView = SettingGroupView(
@@ -263,15 +322,20 @@ struct SettingPickerChoicesView<T:Hashable>: View {
                 dividerTrailingMargin: choicesConfiguration.groupDividerTrailingMargin,
                 dividerColor: choicesConfiguration.groupDividerColor
             ) {
-                ForEach(Array(zip(data.indices, data)), id: \.1) { index, item in
+                ForEach(Array(zip(self.data.indices, self.data)), id: \.1) { index, item in
                     Button {
-                        self.value = item.value
+                        if self.changeFunc(item.value){//允许改变
+                            self.value = item.value
+                            
+                            //返回上一页面
+                            self.dismiss()
+                        }
                     } label: {
                         HStack {
                             Text(item.label)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.vertical, choicesConfiguration.verticalPadding)
-
+                            
                             if item.value == self.value {
                                 Image(systemName: "checkmark")
                                     .foregroundColor(.accentColor)
@@ -282,15 +346,15 @@ struct SettingPickerChoicesView<T:Hashable>: View {
                     .buttonStyle(.row)
                 }
             }
-            #if os(iOS)
-                if #available(iOS 16.0, *) {
-                    settingGroupView.toolbar(.hidden, for: .tabBar)
-                } else {
-                    settingGroupView
-                }
-            #else
+#if os(iOS)
+            if #available(iOS 16.0, *) {
+                settingGroupView.toolbar(.hidden, for: .tabBar)
+            } else {
                 settingGroupView
-            #endif
+            }
+#else
+            settingGroupView
+#endif
         }
     }
 }

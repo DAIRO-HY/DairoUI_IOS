@@ -191,7 +191,7 @@ public enum DownloadManager {
             self.cancel($0, isForce: true)
         }
         //取消网络请求需要一点时间,防止下载中的文件被占用导致删除失败
-        Thread.sleep(forTimeInterval: 0.1)
+        Thread.sleep(forTimeInterval: 0.01)
         self.lock.lock()
         ids.forEach{
 

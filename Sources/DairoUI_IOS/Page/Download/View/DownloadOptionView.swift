@@ -12,8 +12,14 @@ struct DownloadOptionView: View {
     @EnvironmentObject var vm: DownloadViewModel
     @State private var showDeleteAlert = false
     
+    /// 是否跳转设置页面
+    @State var isShowSet = false
+    
     var body: some View {
         VStack(spacing: 8){
+            NavigationLink(destination: DownloadSetPage(), isActive: self.$isShowSet){
+                EmptyView()
+            }
             Divider()
             HStack{
                 Text("已选择:\(self.vm.checked.count)").foregroundColor(.secondary)
@@ -56,9 +62,11 @@ struct DownloadOptionView: View {
                 } message: {
                     Text("此操作无法撤销")
                 }
-                DwonloadOptionButton("全暂停", icon: "pause.circle", action: self.vm.onPauseAllClick)
-                DwonloadOptionButton("全开始", icon: "play.circle", action: self.vm.onStartAllClick)
-                DwonloadOptionButton("设置", icon: "gearshape", action: self.vm.onPauseAllClick)
+                DwonloadOptionButton("全暂停", icon: "pause.circle", disabled: self.vm.saveType == 0, action: self.vm.onPauseAllClick)
+                DwonloadOptionButton("全开始", icon: "play.circle", disabled: self.vm.saveType == 0, action: self.vm.onStartAllClick)
+                DwonloadOptionButton("设置", icon: "gearshape"){
+                    self.isShowSet = true
+                }
             }
         }
     }
@@ -74,6 +82,9 @@ struct DownloadOptionTestView: View {
     @StateObject
     private var vm = DownloadViewModel()
     var body: some View {
-        DownloadOptionView().environmentObject(self.vm)
+        NavigationView{
+            DownloadOptionView().environmentObject(self.vm)
+                .navigationTitle("下载页面")
+        }
     }
 }

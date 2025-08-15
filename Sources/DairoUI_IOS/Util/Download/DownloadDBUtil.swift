@@ -64,7 +64,7 @@ enum DownloadDBUtil{
         let name = self.getFileNameByUrl(url)
         
         //当前时间戳
-        let now = Int32(Date().timeIntervalSince1970)
+        let now = Int(Date().timeIntervalSince1970)
         let insertSQL = "INSERT INTO download(id, url, name, saveType, date, useDate) VALUES ('\(id)', ?, ?, 0, \(now), \(now));"
         var statement: OpaquePointer?
         let err: String?
@@ -96,7 +96,7 @@ enum DownloadDBUtil{
         
         
         //当前时间戳
-        let now = Int32(Date().timeIntervalSince1970)
+        let now = Int(Date().timeIntervalSince1970)
         let insertSQL = "INSERT INTO download(id, url, name, saveType, date, useDate) VALUES (?, ?, ?, 1, \(now), \(now));"
         var statement: OpaquePointer?
         var err: String?
@@ -580,6 +580,56 @@ enum DownloadDBUtil{
         sqlite3_finalize(statement)
         self.lock.unlock()
         return list
+    }
+    
+    /// 获取某个时间之前使用过的缓存大小
+    /// - Returns 某个时间之前使用过的缓存大小
+    static func selectSizeByUsedDate(_ targetDate: Int) -> Int64{
+        let querySQL = "SELECT SUM(size) FROM download WHERE saveType = 0 and useDate < \(targetDate);"
+        var statement: OpaquePointer?
+        var result: Int64 = 0
+        self.lock.lock()
+        
+        // 准备 SQL 语句
+        if sqlite3_prepare_v2(self.db, querySQL, -1, &statement, nil) == SQLITE_OK {
+            
+            // 遍历查询结果
+            if sqlite3_step(statement) == SQLITE_ROW {
+                result = statement!.int64(0)
+            }
+            
+            // 释放语句
+            sqlite3_finalize(statement)
+        } else {
+            fatalError(String(cString: sqlite3_errmsg(self.db)))
+        }
+        self.lock.unlock()
+        return result
+    }
+    
+    /// 获取某个时间之前使用过的文件id
+    /// - Returns 某个时间之前使用过的文件id
+    static func selectIdByUsedDate(_ targetDate: Int) -> [String]{
+        let querySQL = "SELECT id FROM download WHERE saveType = 0 and useDate < \(targetDate);"
+        var statement: OpaquePointer?
+        var result = [String]()
+        self.lock.lock()
+        
+        // 准备 SQL 语句
+        if sqlite3_prepare_v2(self.db, querySQL, -1, &statement, nil) == SQLITE_OK {
+            
+            // 遍历查询结果
+            while sqlite3_step(statement) == SQLITE_ROW {
+                result.append(statement!.text(0))
+            }
+            
+            // 释放语句
+            sqlite3_finalize(statement)
+        } else {
+            fatalError(String(cString: sqlite3_errmsg(self.db)))
+        }
+        self.lock.unlock()
+        return result
     }
     
     
