@@ -13,24 +13,6 @@ import SwiftUI
  */
 public struct CacheImage: View{
     
-    ///图片缓存文件夹
-    public static var cacheFolder: String? = nil
-    
-    /**
-     * 获取歌曲存储目录
-     */
-    public static var mCacheFolder: String {
-        if CacheImage.cacheFolder == nil{
-            
-            //设置缓存目录
-            CacheImage.cacheFolder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!.appendingPathComponent("img_cache").path
-        }
-        return CacheImage.cacheFolder!
-    }
-    
-    ///用来标记该控件的唯一性
-    //    private let uid = String(Date().timeIntervalSince1970) + "-" + String(Int.random(in: 1...100))
-    
     ///当前图片的url
     private let url: String
     
@@ -40,53 +22,73 @@ public struct CacheImage: View{
     ///当前下载进度
     @State private var progress = ""
     
-    private var width: CGFloat = 200
-    private var height: CGFloat = 200
+    private var width: CGFloat?
+    private var height: CGFloat?
     private var alignment: Alignment = .center
     private var radius: CGFloat = 0
+    
+    private var isResizable = false
     
     //填充模式
     private var contentMode = ContentMode.fill
     
-    public init(_ url: String) {
+    /// 文件缓存id
+    private let downloadId: String
+    
+    public init(_ url: String, did: DownloadID = .url) {
         self.url = url
+        self.downloadId = DownloadID.ID(url, did)
     }
     
     public var body: some View {
         if self.freshImage > 0{
             //用来下载完成之后更新视图,不做任何处理
         }
-        if let imagePath = CacheImageHelper.getDownloadedPath(url: self.url, folder: CacheImage.mCacheFolder){
-            Image(uiImage: UIImage(contentsOfFile: imagePath)!)
+        if let path = DownloadManager.getDownloadedPath(self.downloadId){
+            Image(uiImage: UIImage(contentsOfFile: path)!)
                 .resizable()
                 .aspectRatio(contentMode: self.contentMode)
                 .frame(width: self.width, height: self.height, alignment: self.alignment)
                 .clipped()// 裁剪掉超出部分
                 .cornerRadius(self.radius)
         } else {
+            
             // 加载中
             ZStack{
-                Text(self.progress)
-                ProgressView().onAppear{
-                    CacheImageHelper.add(url: self.url, folder: CacheImage.mCacheFolder)
-                    //                    self.download()
+                Text(self.progress).onAppear{
+                    DownloadManager.cache(self.downloadId, self.url)
                 }
+                //                ProgressView().onAppear{
+                //                    DownloadManager.cache(self.downloadId, self.url)
+                //                }
             }
-            .onReceive(NotificationCenter.default.publisher(for: Notification.Name(self.url))){
-                //                debugPrint("url2count = \(DownloadBridge.url2count[self.url])   url2downloading = \(DownloadBridge.url2downloading.count)")
-                let msg = $0.object as! String
-                //                print(msg)
-                if msg.starts(with: "p:"){//下载进度
-                    let data = msg.split(separator: ":")
-                    self.progress = String(Int(Float64(data[2])! / Float64(data[1])! * 100)) + "%"
-                } else if msg.starts(with: "f:nil"){//下载完成
-                    self.freshImage += 1
-                } else if msg.starts(with: "f:"){//下载失败
-                    self.progress = "加载失败"
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name(self.downloadId))){
+                let userInfo = $0.userInfo!
+                switch userInfo["key"] as! DownloadNotify{
+                case .progress:/// 进度回调
+                    // 进度参数是一个数组,数组内容分别是 总大小,已下载大小,下载速度
+                    let progress = userInfo["value"] as! [Int64]
+                    self.progress = String(Int(Float64(progress[1]) / Float64(progress[0]) * 100)) + "%"
+                case .pause:
+                    break
+                case .finish:
+                    guard let error = userInfo["value"] as? Error else{
+                        
+                        //图片缓存完成,刷新页面
+                        self.freshImage += 1
+                        return
+                    }
+                    if let error = error as? DownloaderError{
+                        if case let .error(msg) = error {
+                            self.progress = msg
+                        }
+                    } else {
+                        self.progress = error.localizedDescription
+                    }
                 }
             }
             .onDisappear{//视图被注销时,取消下载
-                CacheImageHelper.cancel(self.url)
+                DownloadManager.cancel(self.downloadId)
             }
             .frame(width: self.width, height: self.height)
         }
@@ -122,5 +124,9 @@ public struct CacheImage: View{
         view.radius = radius
         return view
     }
+}
+
+#Preview {
+    CacheImage("http://localhost:8031/d/oq8221/%E7%9B%B8%E5%86%8C/1753616814872371.heic?wait=50")
 }
 #endif
