@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct DwonloadOptionButton: View {
+public struct BottomOptionButton: View {
     
     ///高度
     private let HEIGHT = 42.0
@@ -27,19 +27,20 @@ struct DwonloadOptionButton: View {
     ///点击回调事件
     private let action: () -> Void
     
-    init(_ label: String, icon: String, disabled: Bool = false, action: @escaping () -> Void) {
+    public init(_ label: String, icon: String, disabled: Bool = false, action: @escaping () -> Void) {
         self.label = label
         self.icon = icon
         self.disabled = disabled
         self.action = action
     }
     
-    var body: some View {
+    public var body: some View {
         Button(action: self.action){
             VStack{
+                Spacer().frame(height: 5)
                 Image(systemName: self.icon)
                 Text(self.label)
-                    .font(.subheadline)
+                    .font(.footnote)
                     .padding(.top, 2)
             }
             .frame(maxWidth: .infinity)

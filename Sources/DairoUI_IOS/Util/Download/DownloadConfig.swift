@@ -8,7 +8,7 @@
 import Foundation
 
 /// 文件下载的常量配置
-enum DownloadConst{
+enum DownloadConfig{
     
     /// 最大缓存文件下载上限
     /// 缓存文件下载上限一定要大于保存文件下载上限,否则,当保存下载达到上限之后,缓存下载无法工作
@@ -18,13 +18,15 @@ enum DownloadConst{
 //    static let maxSavingCount = 3
     
     /// 下载文件保存的文件夹
-    static let saveFolder = DownloadConst.getSaveFolder()
+    static let saveFolder = DownloadConfig.getSaveFolder()
     
     /// 数据库文件保存目录
-    static let dbFile = DownloadConst.getDBFile()
+    static let dbFile = DownloadConfig.getDBFile()
     
     /// 获取下载保存文件夹
     private static func getSaveFolder() -> String{
+        
+//        var downloadURL = URL(string: "file:///Users/zhoulq/dev/java/idea/DairoDFS/data/temp")!
         var downloadURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("download")
         if !FileManager.default.fileExists(atPath: downloadURL.path){//如果文件夹不存在,则创建文件夹
             try? FileManager.default.createDirectory(at: downloadURL, withIntermediateDirectories: true)
@@ -39,6 +41,7 @@ enum DownloadConst{
     
     /// 获取数据库文件目录
     private static func getDBFile() -> String{
+//        var dbURL = URL(string: "file:///Users/zhoulq/dev/java/idea/DairoDFS/data/download3.sqlite")!
         var dbURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!.appendingPathComponent("download3.sqlite")
         if !FileManager.default.fileExists(atPath: dbURL.path){//如果文件不存在,则创建文件
             
@@ -111,4 +114,21 @@ enum DownloadConst{
             UserDefaults.standard.set(newValue, forKey: "CACHE_SAVE_DAY")
         }
     }
+    
+    /*----------------------------------------------------------------------------------*/
+    
+//    /// 记录最后一次清理缓存的时间
+//    nonisolated(unsafe) private static var _lastClearCacheTime: Int?
+//    static var lastClearCacheTime: Int{
+//        get {
+//            if self._lastClearCacheTime == nil{
+//                self._lastClearCacheTime = UserDefaults.standard.integer(forKey: "LAST_CLEAR_CACHE_TIME")
+//            }
+//            return self._lastClearCacheTime!
+//        }
+//        set{
+//            self._lastClearCacheTime = newValue;
+//            UserDefaults.standard.set(newValue, forKey: "LAST_CLEAR_CACHE_TIME")
+//        }
+//    }
 }

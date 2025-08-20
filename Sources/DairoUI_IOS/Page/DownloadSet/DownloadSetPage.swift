@@ -13,13 +13,13 @@ struct DownloadSetPage: View {
     @StateObject private var vm = DownloadSetViewModel()
     
     /// 同时下载文件数
-    @State private var maxSavingCount = DownloadConst.maxSavingCount
+    @State private var maxSavingCount = DownloadConfig.maxSavingCount
     
     /// 同时缓存文件数
-    @State private var maxCachingCount = DownloadConst.maxCachingCount
+    @State private var maxCachingCount = DownloadConfig.maxCachingCount
     
     /// 缓存文件保存期限
-    @State private var cacheSaveDay = DownloadConst.cacheSaveDay
+    @State private var cacheSaveDay = DownloadConfig.cacheSaveDay
     
     /// 同时下载文件数模版
     private let downloadAsyncCountDemo = [1,2,3,4,5,6,7,8,9,10].map{
@@ -38,24 +38,24 @@ struct DownloadSetPage: View {
     ]
     
     var body: some View {
-        SettingStack{
+        SettingStack(embedInNavigationStack: false){
             SettingPage(navigationTitleDisplayMode:.inline){
                 SettingGroup{
                     SettingPicker("同时下载文件数",data: self.downloadAsyncCountDemo, value: self.$maxSavingCount){ value in
-                        if value >= DownloadConst.maxCachingCount{
+                        if value >= DownloadConfig.maxCachingCount{
                             Toast.show("同时下载文件数必须小于同时缓存文件数")
                             return false
                         }
-                        DownloadConst.maxSavingCount = value
+                        DownloadConfig.maxSavingCount = value
                         return true
                     }
                     .icon("square.and.arrow.down.fill", backgroundColor: Color.red)
                     SettingPicker("同时缓存文件数",data: self.downloadAsyncCountDemo, value: self.$maxCachingCount){ value in
-                        if value <= DownloadConst.maxSavingCount{
+                        if value <= DownloadConfig.maxSavingCount{
                             Toast.show("同时缓存文件数必须大于同时下载文件数")
                             return false
                         }
-                        DownloadConst.maxCachingCount = value
+                        DownloadConfig.maxCachingCount = value
                         return true
                     }
                     .icon("square.and.arrow.down.fill", backgroundColor: Color.green)
@@ -63,7 +63,7 @@ struct DownloadSetPage: View {
                 
                 SettingGroup{
                     SettingPicker("缓存文件保存期限",data: self.cacheSaveDayDemo, value: self.$cacheSaveDay){ value in
-                        DownloadConst.cacheSaveDay = value
+                        DownloadConfig.cacheSaveDay = value
                         return true
                     }
                     .icon("timer.circle.fill", backgroundColor: Color.orange)

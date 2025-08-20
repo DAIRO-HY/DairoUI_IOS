@@ -29,16 +29,29 @@ import Foundation
 
 @Test func Downloader_delete() async throws {
     Downloader("1144", "http://localhost:8031/d/oq8221/%E7%9B%B8%E5%86%8C/1753616814872371.heic"){_,_ in }.download()
-    await Task.sleep(2_000_000_000)
+    await Task.sleep(1_000_000_000)
     let path = DownloadManager.getDownloadedPath("1144")
     if path == nil{
         fatalError("测试异常")
     }
-    DownloadDBUtil.delete(["1144"])
+    Downloader.delete("1144")
     if  DownloadManager.getDownloadedPath("1144") != nil{
         fatalError("缓存列表没有被删除,异常结束")
     }
     if FileManager.default.fileExists(atPath: path!){
+        fatalError("测试异常,文件meiy0ou被删除")
+    }
+    print("-->正常结束")
+}
+
+@Test func Downloader_delete2() async throws {
+    Downloader("1155", "http://localhost:8031/d/oq8221/%E7%9B%B8%E5%86%8C/1753880938255678.mov?wait=100"){_,_ in }.download()
+    await Task.sleep(1_000_000_000)
+    Downloader.delete("1155")
+    if  DownloadManager.getDownloadedPath("1155") != nil{
+        fatalError("缓存列表没有被删除,异常结束")
+    }
+    if FileManager.default.fileExists(atPath: Downloader.getDownloadingPath("1155")){
         fatalError("测试异常,文件meiy0ou被删除")
     }
     print("-->正常结束")

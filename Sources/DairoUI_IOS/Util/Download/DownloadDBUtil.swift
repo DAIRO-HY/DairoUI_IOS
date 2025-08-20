@@ -12,7 +12,7 @@ public enum DownloadDBUtilError: Error {
     case dbError(_ msg: String)
 }
 
-enum DownloadDBUtil{
+public enum DownloadDBUtil{
     
     //数据操作锁,防止并发操作
     private static let lock = NSLock()
@@ -33,7 +33,7 @@ enum DownloadDBUtil{
         if self.mDB != nil{
             return self.mDB!
         }
-        sqlite3_open(DownloadConst.dbFile, &mDB)
+        sqlite3_open(DownloadConfig.dbFile, &mDB)
         //                    let abs = DownloadConst.dbFile.absPath
         //                    print(abs)
         //                    print(FileManager.default.fileExists(atPath: abs))
@@ -44,12 +44,34 @@ enum DownloadDBUtil{
     /// 初始化数据库
     private static func initDb(){
         self.exec(self.CREATE_SQL)
+        self.updateStateToPauseByDownloading()
     }
     
     private static func exec(_ sql: String){
         if sqlite3_exec(self.db, sql, nil, nil, nil) != SQLITE_OK{
             let errmsg = String(cString: sqlite3_errmsg(self.db))
             print("SQL 执行出错: \(errmsg)")
+        }
+    }
+    
+    /// 将正在下载中的任务标记为暂停状态
+    /// 该操作仅仅在APP第一次打开时执行,内部无需锁操作
+    private static func updateStateToPauseByDownloading(){
+        let updateSQL = "UPDATE download set state = 2 where state = 1 and saveType = 1;"
+        var statement: OpaquePointer?
+        let err: String?
+        if sqlite3_prepare_v2(self.db, updateSQL, -1, &statement, nil) == SQLITE_OK {
+            if sqlite3_step(statement) == SQLITE_DONE {
+                err = nil
+            } else {
+                err = String(cString: sqlite3_errmsg(self.db))
+            }
+            sqlite3_finalize(statement)
+        } else {
+            err = String(cString: sqlite3_errmsg(self.db))
+        }
+        if let err{
+            fatalError(err)
         }
     }
     
@@ -94,7 +116,6 @@ enum DownloadDBUtil{
     /// - Throws 错误消息
     static func addSave(_ list: [(id: String, url: String)]) throws{
         
-        
         //当前时间戳
         let now = Int(Date().timeIntervalSince1970)
         let insertSQL = "INSERT INTO download(id, url, name, saveType, date, useDate) VALUES (?, ?, ?, 1, \(now), \(now));"
@@ -135,20 +156,14 @@ enum DownloadDBUtil{
         }
         
         if err == nil && !existsIds.isEmpty{//将缓存文件修改文永久存储
-            let updateSQL = "UPDATE download set saveType = 1 where id = ? and saveType = 0;"
-            if sqlite3_prepare_v2(self.db, updateSQL, -1, &statement, nil) == SQLITE_OK {
-                for id in existsIds{
-                    sqlite3_bind_text(statement, 1, (id as NSString).utf8String, -1, nil)
-                    if sqlite3_step(statement) == SQLITE_DONE {
-                        err = nil
-                    } else {
-                        err = String(cString: sqlite3_errmsg(self.db))
-                    }
-                    sqlite3_reset(statement) // 重置以便下一次绑定
-                    sqlite3_clear_bindings(statement) // 清除绑定数据
-                }
-                sqlite3_finalize(statement)
-            } else {
+            let ids = "'" + existsIds.joined(separator: "','") + "'"
+            let updateSQL = """
+                    UPDATE download set saveType = 1 where id in (\(ids)) and saveType = 0; -- 将缓存文件设置为永久保存文件
+                    UPDATE download set state = 0 where id in (\(ids)) and state in (2,3); -- 将暂停或失败的文件设置为准备下载状态
+                """
+            
+            //这里有个坑,如果同时执行多条sql语句,只能使用sqlite3_exec函数,sqlite3_prepare_v2函数只会执行第一条sql语句
+            if sqlite3_exec(self.db, updateSQL, nil, nil, nil) != SQLITE_OK{
                 err = String(cString: sqlite3_errmsg(self.db))
             }
         }
@@ -163,6 +178,7 @@ enum DownloadDBUtil{
         if let err{
             throw DownloadDBUtilError.dbError(err)
         }
+        //print(self.selectListBySaveType(1))
     }
     
     /// 从url中获取文件名
@@ -275,15 +291,13 @@ enum DownloadDBUtil{
     
     /// 更新文件最后使用日期
     ///
-    /// - Parameter id: 文件唯一id
-    static func updateUseDate(_ id: String){
-        let updateSQL = "UPDATE download set useDate = ? where id = ?;"
+    /// - Parameter ids: 文件id列表
+    static func updateUseDate(_ ids: [String]){
+        let updateSQL = "UPDATE download set useDate = \(Int(Date().timeIntervalSince1970)) where id in ('\(ids.joined(separator: "','"))');"
         var statement: OpaquePointer?
         let err: String?
         self.lock.lock()
         if sqlite3_prepare_v2(self.db, updateSQL, -1, &statement, nil) == SQLITE_OK {
-            sqlite3_bind_int(statement, 1, Int32(Date().timeIntervalSince1970))
-            sqlite3_bind_text(statement, 2, (id as NSString).utf8String, -1, nil)
             if sqlite3_step(statement) == SQLITE_DONE {
                 err = nil
             } else {
@@ -409,18 +423,6 @@ enum DownloadDBUtil{
     ///
     /// - Parameter id: 文件唯一id
     static func delete(_ ids: [String]){
-//        ids.forEach{
-//            
-//            //删除文件
-//            let path = Downloader.getPath($0)
-//            if FileManager.default.fileExists(atPath: path){//删除文件
-//                try? FileManager.default.removeItem(atPath: path)
-//            }
-//            let downloadingPath = Downloader.getDownloadingPath($0)
-//            if FileManager.default.fileExists(atPath: downloadingPath){//删除文件
-//                try? FileManager.default.removeItem(atPath: downloadingPath)
-//            }
-//        }
         let deleteSQL = "DELETE FROM download where id in ('\(ids.joined(separator: "','"))');"
         var statement: OpaquePointer?
         let err: String?
@@ -521,7 +523,7 @@ enum DownloadDBUtil{
     /// - Parameter saveType: 文件保存方式
     /// - Returns 文件路径
     static func selectListBySaveType(_ saveType: Int8) -> [DownloadDto]{
-        let querySQL = "SELECT id,name,state,date,useDate,error FROM download WHERE saveType = \(saveType);"
+        let querySQL = "SELECT id,name,size,state,date,useDate,error FROM download WHERE saveType = \(saveType);"
         var statement: OpaquePointer?
         
         var list = [DownloadDto]()
@@ -609,7 +611,7 @@ enum DownloadDBUtil{
     
     /// 获取某个时间之前使用过的文件id
     /// - Returns 某个时间之前使用过的文件id
-    static func selectIdByUsedDate(_ targetDate: Int) -> [String]{
+    public static func selectIdByUsedDate(_ targetDate: Int) -> [String]{
         let querySQL = "SELECT id FROM download WHERE saveType = 0 and useDate < \(targetDate);"
         var statement: OpaquePointer?
         var result = [String]()

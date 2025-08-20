@@ -35,9 +35,13 @@ public struct CacheImage: View{
     /// 文件缓存id
     private let downloadId: String
     
-    public init(_ url: String, did: DownloadID = .url) {
+    public init(_ url: String, downloadId: String? = nil) {
         self.url = url
-        self.downloadId = DownloadID.ID(url, did)
+        if downloadId != nil{
+            self.downloadId = downloadId!
+        } else {
+            self.downloadId = url.md5
+        }
     }
     
     public var body: some View {
@@ -127,6 +131,6 @@ public struct CacheImage: View{
 }
 
 #Preview {
-    CacheImage("http://localhost:8031/d/oq8221/%E7%9B%B8%E5%86%8C/1753616814872371.heic?wait=50")
+    CacheImage("http://localhost:8031/d/oq8221/%E7%9B%B8%E5%86%8C/1753616814872371.heic")
 }
 #endif

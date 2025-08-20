@@ -222,3 +222,27 @@ import Foundation
     }
     await Task.sleep(999_000_000_000)
 }
+
+@Test func DownloadManager_geDownloadPath() async throws {
+    DownloadManager.cache("1122", "http://localhost:8031/d/oq8221/%E7%9B%B8%E5%86%8C/1753616814872371.heic")
+    DownloadManager.getDownloadedPath("1122")
+    print(DownloadDBUtil.selectListBySaveType(0))
+    await Task.sleep(1_000_000_000)
+    DownloadManager.getDownloadedPath("1122")
+    await Task.sleep(10_000_000_000)
+    DownloadManager.getDownloadedPath("1122")
+    print(DownloadDBUtil.selectListBySaveType(0))
+    await Task.sleep(3_000_000_000)
+}
+
+@Test func DownloadManager_geDownloadPathPowerTest() async throws {
+    for i in 1...500{
+        DownloadManager.cache("1122-\(i)", "http://localhost:8031/d/oq8221/%E7%9B%B8%E5%86%8C/1753616814872371.heic")
+    }
+    await Task.sleep(3_000_000_000)
+    let now = Date()
+    for i in 1...1000000{
+        DownloadManager.getDownloadedPath("1122-\(i % 500 + 1)")
+    }
+    print(Date().timeIntervalSince(now))
+}

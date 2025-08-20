@@ -11,16 +11,31 @@ import Foundation
 public enum DownloadManager {
     
     /// 等待中的下载任务,用于临时缓存下载任务,如缓存图片等
-    nonisolated(unsafe)  static var waitingId2url = [String : String]()
+    nonisolated(unsafe) static var waitingId2url = [String : String]()
     
     /// 文件id => 下载请求数
-    nonisolated(unsafe)  static var id2count = [String : Int]()
+    nonisolated(unsafe) static var id2count = [String : Int]()
     
     /// 文件ID  =>  正在下载
-    nonisolated(unsafe)  static var id2download = [String : Downloader]()
+    nonisolated(unsafe) static var id2download = [String : Downloader]()
     
     /// 单线程并发锁
     private static let lock = NSLock()
+    
+    /// 记录本次打开app是否已经清理过缓存,控制缓存清理频率
+    nonisolated(unsafe) private static var isClear = false
+    
+    /// 记录要更新最后使用时间的文件id
+    nonisolated(unsafe) static var updateUseDateIds = Set<String>()
+    
+    ///最后一次更新文件使用时间的时间
+    nonisolated(unsafe) private static var lastUpdateUseDate = Date()
+    
+    ///缓存需要更新最后使用时间的文件id数的最大件数
+    private static let MAX_UPDATE_USE_DATE_COUNT = 500
+    
+    ///缓存需要更新最后使用时间的文件id的最大j间隔时间
+    private static let MAX_UPDATE_USE_DATE_TIME = 1 * 60.0
     
     /// 添加一个缓存任务
     /// - Parameter id: 文件唯一id
@@ -39,11 +54,11 @@ public enum DownloadManager {
         self.loopDownloadByWaiting()
     }
     
-    /// 添加一个下载任务(永久存储)
+    /// 添加下载,如果文件在缓存中,则将缓存标记为永久保存
     ///
     /// - Parameter id: 文件唯一id
     /// - Parameter url: 下载地址
-    public static func save(_ list: [(id: String, url: String)]) throws {
+    public static func save(_ list: [(id: String, url: String)]) {
         self.lock.lock()
         for (id, _) in list{
             
@@ -51,7 +66,7 @@ public enum DownloadManager {
             self.id2count[id] = 999999999
         }
         self.lock.unlock()
-        try DownloadDBUtil.addSave(list)
+        try? DownloadDBUtil.addSave(list)
         
         //去下载等待中的任务
         self.loopDownloadByWaiting()
@@ -61,7 +76,7 @@ public enum DownloadManager {
     public static func loopDownloadByWaiting(){
         self.lock.lock()
         for (id, url) in waitingId2url{
-            if self.id2download.count >= DownloadConst.maxCachingCount{//当前下载并发数已到上限
+            if self.id2download.count >= DownloadConfig.maxCachingCount{//当前下载并发数已到上限
                 break
             }
             
@@ -94,7 +109,7 @@ public enum DownloadManager {
             guard let needDownload = DownloadDBUtil.selectOneForNeedDownload() else{//如果没有需要下载的文件
                 break
             }
-            if self.id2download.count >= DownloadConst.maxSavingCount{//当前下载并发数已到上限
+            if self.id2download.count >= DownloadConfig.maxSavingCount{//当前下载并发数已到上限
                 break
             }
             
@@ -184,6 +199,9 @@ public enum DownloadManager {
     /// 删除一个文件
     /// - Parameter id : 文件id
     public static func delete(_ ids: [String]){
+        if ids.isEmpty{
+            return
+        }
         
         //从数据库中删除数据
         DownloadDBUtil.delete(ids)
@@ -194,16 +212,9 @@ public enum DownloadManager {
         Thread.sleep(forTimeInterval: 0.01)
         self.lock.lock()
         ids.forEach{
-
+            
             //删除文件
-            let path = Downloader.getPath($0)
-            if FileManager.default.fileExists(atPath: path){//删除文件
-                try? FileManager.default.removeItem(atPath: path)
-            }
-            let downloadingPath = Downloader.getDownloadingPath($0)
-            if FileManager.default.fileExists(atPath: downloadingPath){//删除文件
-                try? FileManager.default.removeItem(atPath: downloadingPath)
-            }
+            let path = Downloader.delete($0)
         }
         self.lock.unlock()
     }
@@ -212,10 +223,47 @@ public enum DownloadManager {
     /// - Parameter id: 文件唯一id
     /// - Returns 文件路径
     public static func getDownloadedPath(_ id: String) -> String?{
-        let path = Downloader.getPath(id)
-        if FileManager.default.fileExists(atPath: path){
-            return path
+        guard let path = Downloader.getFilePath(id) else{
+            return nil
         }
-        return nil
+        
+        //设置最后使用时间
+        self.setUseDate(id)
+        
+        //清理缓存
+        self.clearCache()
+        return path
+    }
+    
+    /// 设置最后使用时间
+    /// - Parameter id: 文件唯一id
+    private static func setUseDate(_ id: String){
+        self.lock.lock()
+        if !self.updateUseDateIds.contains(id){//若文件id已经存在
+            self.updateUseDateIds.insert(id)
+        }
+        if self.updateUseDateIds.count >= self.MAX_UPDATE_USE_DATE_COUNT || Date().timeIntervalSince(self.lastUpdateUseDate) > self.MAX_UPDATE_USE_DATE_TIME{//要更新的数量达到一定数量时,更新DB数据,控制更新频率
+            
+            //去更新
+            DownloadDBUtil.updateUseDate(Array(self.updateUseDateIds))
+            self.updateUseDateIds.removeAll()
+            self.lastUpdateUseDate = Date()
+        }
+        self.lock.unlock()
+    }
+    
+    /// 清除缓存
+    private static func clearCache(){
+        if self.isClear{// 每次打开APP清理一次
+            return
+        }
+        self.isClear = true
+        
+        //得到配置的缓存保存期限
+        let cacheSaveDay = DownloadConfig.cacheSaveDay
+        let ids = DownloadDBUtil.selectIdByUsedDate(cacheSaveDay)
+        
+        //删除这些文件
+        self.delete(ids)
     }
 }

@@ -43,8 +43,8 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
     /// 下载url
     private let url: String
     
-    /// 文件保存路径
-    private let path: String
+    /// 文件名
+    private var filename: String?
     
     /// 完成之后的回调函数
     private let finishFunc: (String, Error?) -> Void
@@ -109,16 +109,17 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
     /// 初始化函数
     /// - Parameter id: 文件唯一id
     /// - Parameter url: 下载地址
-    public init(_ id: String,_ url: String, finishFunc: @escaping (String, Error?) -> Void) {
+    /// - Parameter filename: 文件名
+    public init(_ id: String, _ url: String, _ filename: String? = nil, finishFunc: @escaping (String, Error?) -> Void) {
         self.id = id
         self.url = url
         self.finishFunc = finishFunc
-        self.path = Downloader.getPath(id)
+        self.filename = filename
     }
     
     /// 开始下载
     public func download(){
-        if FileManager.default.fileExists(atPath: self.path) {//文件已经下载完成,无需重新下载
+        if FileManager.default.fileExists(atPath: Downloader.getLinkPath(self.id)) {//文件已经下载完成,无需重新下载
             
             //回调下载结束函数
             self.notify(.finish)
@@ -138,16 +139,13 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         }
         Downloader.downloading.insert(self.id)
         Downloader.downloadingLock.unlock()
-        //        if let path = DownloadDBUtil.selectPathById(id){//该下载文件已经存在,继续下载
-        //            self.path = path
-        //        } else {//文件不存在,添加文件
-        //            self.path = Downloader.savePath
-        //            try! DownloadDBUtil.insert(id, self.path)
-        //        }
-        if FileManager.default.fileExists(atPath: self.path + Downloader.DOWNLOADING_FILE_EXT) {//临时文件已经存在,读取已经下载的大小继续下载
+        
+        // 得到下载中的文件保存路径
+        let downloadingPath = Downloader.getDownloadingPath(self.id)
+        if FileManager.default.fileExists(atPath: downloadingPath) {//临时文件已经存在,读取已经下载的大小继续下载
             
             //得到已下载大小
-            self.downloadedSize = FileUtil.getFileSize(self.path + Downloader.DOWNLOADING_FILE_EXT)!
+            self.downloadedSize = FileUtil.getFileSize(downloadingPath)!
         } else {
             self.downloadedSize = 0
         }
@@ -215,17 +213,20 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         
         //获取到文件总大小
         self.total = Int64(String(describing: contentLengthStr))! + self.downloadedSize
-        if !FileManager.default.fileExists(atPath: self.path + Downloader.DOWNLOADING_FILE_EXT) {//文件不存在
+        
+        // 得到下载中的文件保存路径
+        let downloadingPath = Downloader.getDownloadingPath(self.id)
+        if !FileManager.default.fileExists(atPath: downloadingPath) {//文件不存在
             
             //创建文件,在写入文件之前必须要先创建一个空文件
-            FileManager.default.createFile(atPath: self.path + Downloader.DOWNLOADING_FILE_EXT, contents: nil)
+            FileManager.default.createFile(atPath: downloadingPath, contents: nil)
             
             //设置文件大小
             DownloadDBUtil.setSize(self.id, self.total)
         }
         
         //初始化一个可以写文件工具
-        self.writeFileHandle = FileHandle(forWritingAtPath: self.path + Downloader.DOWNLOADING_FILE_EXT)
+        self.writeFileHandle = FileHandle(forWritingAtPath: downloadingPath)
         
         //将指针移动到文件末尾
         try! self.writeFileHandle?.seekToEnd()
@@ -271,21 +272,6 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         session.invalidateAndCancel()
         self.httpTask = nil
         
-        //        if let error = error{//如果有错误
-        //            if let urlErr = error as? URLError{
-        //                if urlErr.code.rawValue == -999{//用户已经取消
-        //                    debugPrint(error)
-        //                    self.finishFunc?(CancelError())
-        //                    return
-        //                }
-        //            }
-        //        }else{
-        //            if self.isReadToEnd{//一次性把数据读完之后再回调
-        //                self.successFunc?(self.data)
-        //            }
-        //        }
-        //        self.finishFunc?(error)
-        
         //关闭文件操作
         try? self.writeFileHandle?.close()
         self.writeFileHandle = nil
@@ -294,18 +280,36 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         if err != nil && self.httpStatusCode == 416{//代表这个文件已经下载完成
             err = nil
         }
+        
+        // 得到下载中的文件保存路径
+        let downloadingPath = Downloader.getDownloadingPath(self.id)
         if err == nil{
             
             //当前下载的文件大小
-            let downloadedFileSize = FileUtil.getFileSize(self.path + Downloader.DOWNLOADING_FILE_EXT)!
+            let downloadedFileSize = FileUtil.getFileSize(downloadingPath)!
             if self.total != downloadedFileSize{//如果下载的文件不是一个完成的文件
                 err = DownloaderError.error("文件不完整,已下载文件大小:\(downloadedFileSize.fileSize), 服务端文件大小:\(self.total.fileSize)")
             }
         }
-        if err == nil{//如果没有下载错误,则将文件重命名
+        if err == nil{//如果没有下载错误,则将文件移动到指定目录
+            let folderURL = URL(string: "file://" + DownloadConfig.saveFolder + "/" + id)!
             
-            //文件重命名
-            try? FileManager.default.moveItem(at: URL(fileURLWithPath: self.path + Downloader.DOWNLOADING_FILE_EXT), to: URL(fileURLWithPath: self.path))
+            // 创建文件夹
+            try? FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
+            
+            //获取文件名
+            if self.filename == nil{
+                self.filename = Downloader.getFileNameByUrl(self.url)
+            }
+            
+            //创建链接文件
+            FileManager.default.createFile(atPath: Downloader.getLinkPath(self.id), contents: self.filename!.data(using: String.Encoding.utf8))
+            
+            //文件保存路径
+            let saveURL = folderURL.appendingPathComponent(self.filename!)
+            
+            //移动文件
+            try? FileManager.default.moveItem(at: URL(fileURLWithPath: downloadingPath), to: saveURL)
         }
         
         //移除正在下载
@@ -348,14 +352,76 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         self.httpTask?.cancel()
     }
     
-    //文件路径
-    public static func getPath(_ id: String) -> String{
-        return DownloadConst.saveFolder + "/" + id
+    /// 获取文件路径
+    public static func getFilePath(_ id: String) -> String?{
+        let linkPath = self.getLinkPath(id)
+        if !FileManager.default.fileExists(atPath: linkPath){
+            return nil
+        }
+        
+        // 打开文件
+        guard let readFileHandle = FileHandle(forReadingAtPath: linkPath) else{
+            return nil
+        }
+        defer{
+            try? readFileHandle.close()
+        }
+        
+        // 读取全部数据
+        let data = readFileHandle.readData(ofLength: Int.max)
+        
+        //得到文件名
+        let filename = String(data: data, encoding: .utf8)!
+        
+        //得到文件路径
+        let filePath = DownloadConfig.saveFolder + "/" + id + "/" + filename
+        if !FileManager.default.fileExists(atPath: filePath){
+            return nil
+        }
+        return filePath
     }
     
-    //文件路径
+    /// 文件链接路径
+    private static func getLinkPath(_ id: String) -> String{
+        return DownloadConfig.saveFolder + "/" + id + ".link"
+    }
+    
+    /// 文件路径
     public static func getDownloadingPath(_ id: String) -> String{
-        return DownloadConst.saveFolder + "/" + id + Downloader.DOWNLOADING_FILE_EXT
+        return DownloadConfig.saveFolder + "/" + id + Downloader.DOWNLOADING_FILE_EXT
+    }
+    
+    /// 删除文件
+    public static func delete(_ id: String){
+        
+        //删除存储文件夹及文件
+        let folder = DownloadConfig.saveFolder + "/" + id
+        
+        //删除保存文件
+        try? FileManager.default.removeItem(atPath: folder)
+        
+        //删除下载中文件
+        try? FileManager.default.removeItem(atPath: self.getDownloadingPath(id))
+        
+        //删除链接文件
+        try? FileManager.default.removeItem(atPath: self.getLinkPath(id))
+    }
+    
+    /// 从url中获取文件名
+    static func getFileNameByUrl(_ url: String) -> String{
+        var path = url[url.range(of: "://")!.upperBound...]
+        if let slashIndex = path.firstIndex(of: "/"){
+            path = path[slashIndex...]
+            if let questionIndex = path.firstIndex(of: "?"){
+                path = path[..<questionIndex]
+            }
+        } else {
+            path = "/"
+        }
+        var lastSlashIndex = path.lastIndex(of: "/")!
+        lastSlashIndex = path.index(lastSlashIndex,offsetBy: 1)
+        let name = path[lastSlashIndex...]
+        return String(name)
     }
     
     deinit {

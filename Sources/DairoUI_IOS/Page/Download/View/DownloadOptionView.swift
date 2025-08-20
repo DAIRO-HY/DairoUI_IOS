@@ -49,9 +49,9 @@ struct DownloadOptionView: View {
             }.padding(.horizontal, 5)
             Divider()
             HStack{
-                DwonloadOptionButton("全选", icon: "checklist.checked", action: self.vm.onCheckAllClick)
-                DwonloadOptionButton("共有", icon: "square.and.arrow.up", disabled: self.vm.checked.isEmpty, action: self.vm.onPauseAllClick)
-                DwonloadOptionButton("删除", icon: "trash", disabled: self.vm.checked.isEmpty){
+                BottomOptionButton("全选", icon: "checklist.checked", action: self.vm.onCheckAllClick)
+                BottomOptionButton("共有", icon: "square.and.arrow.up", disabled: self.vm.checked.isEmpty, action: self.vm.onPauseAllClick)
+                BottomOptionButton("删除", icon: "trash", disabled: self.vm.checked.isEmpty){
                     self.showDeleteAlert = true
                 }
                 .alert("确认删除吗？", isPresented: $showDeleteAlert) {
@@ -62,9 +62,9 @@ struct DownloadOptionView: View {
                 } message: {
                     Text("此操作无法撤销")
                 }
-                DwonloadOptionButton("全暂停", icon: "pause.circle", disabled: self.vm.saveType == 0, action: self.vm.onPauseAllClick)
-                DwonloadOptionButton("全开始", icon: "play.circle", disabled: self.vm.saveType == 0, action: self.vm.onStartAllClick)
-                DwonloadOptionButton("设置", icon: "gearshape"){
+                BottomOptionButton("全暂停", icon: "pause.circle", disabled: self.vm.saveType == 0, action: self.vm.onPauseAllClick)
+                BottomOptionButton("全开始", icon: "play.circle", disabled: self.vm.saveType == 0, action: self.vm.onStartAllClick)
+                BottomOptionButton("设置", icon: "gearshape"){
                     self.isShowSet = true
                 }
             }
