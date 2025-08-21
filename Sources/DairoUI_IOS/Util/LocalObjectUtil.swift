@@ -93,4 +93,12 @@ public enum LocalObjectUtil{
         }
         return try? JSONDecoder().decode(type.self, from: data) as T?
     }
+    
+    ///删除一个对象到文件
+    public static func delete(_ name: String) {
+        
+        //保存目录
+        let path = LocalObjectUtil.mFolder + "/" + name
+        try? FileManager.default.removeItem(atPath: path)
+    }
 }

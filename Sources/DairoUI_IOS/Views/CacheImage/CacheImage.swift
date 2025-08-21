@@ -49,12 +49,21 @@ public struct CacheImage: View{
             //用来下载完成之后更新视图,不做任何处理
         }
         if let path = DownloadManager.getDownloadedPath(self.downloadId){
-            Image(uiImage: UIImage(contentsOfFile: path)!)
-                .resizable()
-                .aspectRatio(contentMode: self.contentMode)
-                .frame(width: self.width, height: self.height, alignment: self.alignment)
-                .clipped()// 裁剪掉超出部分
-                .cornerRadius(self.radius)
+            if let uiImage = UIImage(contentsOfFile: path){
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: self.contentMode)
+                    .frame(width: self.width, height: self.height, alignment: self.alignment)
+                    .clipped()// 裁剪掉超出部分
+                    .cornerRadius(self.radius)
+            } else {//图片加载失败
+                Image(systemName: "photo")
+                    .resizable()
+                    .aspectRatio(contentMode: self.contentMode)
+                    .frame(width: self.width, height: self.height, alignment: self.alignment)
+                    .clipped()// 裁剪掉超出部分
+                    .cornerRadius(self.radius)
+            }
         } else {
             
             // 加载中

@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import CommonCrypto
 public enum FileUtil{
     
     /**
@@ -70,6 +71,39 @@ public enum FileUtil{
         
         // 读取全部数据
         return readFileHandle.readData(ofLength: Int.max)
+    }
+    
+    /// 获取文件MD5
+    public static func getMD5(_ url: URL) -> String?{
+        return self.getMD5(url.path)
+    }
+    
+    /// 获取文件MD5
+    public static func getMD5(_ path: String) -> String? {
+        guard let stream = InputStream(fileAtPath: path) else { return nil }
+        stream.open()
+        defer { stream.close() }
+
+        var context = CC_MD5_CTX()
+        CC_MD5_Init(&context)
+
+        let bufferSize = 1024 * 1024
+        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        defer { buffer.deallocate() }
+
+        while stream.hasBytesAvailable {
+            let read = stream.read(buffer, maxLength: bufferSize)
+            if read > 0 {
+                _ = CC_MD5_Update(&context, buffer, CC_LONG(read))
+            } else {
+                break
+            }
+        }
+
+        var digest = [UInt8](repeating: 0, count: Int(CC_MD5_DIGEST_LENGTH))
+        CC_MD5_Final(&digest, &context)
+
+        return digest.map { String(format: "%02hhx", $0) }.joined()
     }
     
     
