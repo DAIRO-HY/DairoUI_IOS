@@ -7,20 +7,6 @@
 
 import Foundation
 
-class DownloadItemBean{
-    
-    /// 文件id
-    let id: String
-    
-    /// 是否选中
-    var isChecked: Bool
-    
-    init(id: String, isChecked: Bool) {
-        self.id = id
-        self.isChecked = isChecked
-    }
-}
-
 public class DownloadViewModel : ObservableObject{
     
     /// 加载的列表的保存方式
