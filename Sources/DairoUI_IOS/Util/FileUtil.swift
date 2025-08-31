@@ -74,13 +74,13 @@ public enum FileUtil{
     }
     
     /// 获取文件MD5
-    public static func getMD5(_ url: URL) -> String?{
-        return self.getMD5(url.path)
+    public static func getMD5(_ path: String) -> String? {
+        return getMD5(URL(fileURLWithPath: path))
     }
     
     /// 获取文件MD5
-    public static func getMD5(_ path: String) -> String? {
-        guard let stream = InputStream(fileAtPath: path) else { return nil }
+    public static func getMD5(_ url: URL) -> String? {
+        guard let stream = InputStream(url: url) else { return nil }
         stream.open()
         defer { stream.close() }
 
@@ -191,7 +191,7 @@ public enum FileUtil{
      * 创建多级目录
      */
     public static func mkdirs(_ path: String) -> Bool{
-        let url = URL(string: "file://" + path)!
+        let url = URL(fileURLWithPath: path)
         
         // 如果文件夹不存在，则创建
         do{

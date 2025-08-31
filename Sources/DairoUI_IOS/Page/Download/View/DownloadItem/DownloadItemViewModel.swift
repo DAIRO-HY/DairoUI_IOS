@@ -75,13 +75,13 @@ class DownloadItemViewModel : ObservableObject{
             self.setDownloadState(2)
             
             //将其设置为暂停中
-            DownloadDBUtil.updateState(self.dto.id, 2)
+            DownloadDBUtil.setState(self.dto.id, 2)
         } else {
             self.error = nil
             self.setDownloadState(0)
             
             //将其设置为准备下载中
-            DownloadDBUtil.updateState(self.dto.id, 0)
+            DownloadDBUtil.setState(self.dto.id, 0)
             
             //开启循环下载
             DownloadManager.loopDownloadByWaiting()

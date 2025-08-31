@@ -85,7 +85,7 @@ public enum DownloadManager {
             if self.id2download[id] == nil{//这里需要先判断一下是否正在下载中,有可能永久保存下载正在进行
                 
                 //创建一个下载任务
-                self.id2download[id] = Downloader(id, url, finishFunc: self.finish)
+                self.id2download[id] = Downloader(id, url)
                 
                 //开始下载
                 self.id2download[id]!.download()
@@ -117,11 +117,11 @@ public enum DownloadManager {
             self.id2count[needDownload.id] = 999999999
             
             //将文件标记为正在下载中
-            DownloadDBUtil.updateState(needDownload.id, 1)
+            DownloadDBUtil.setState(needDownload.id, 1)
             if self.id2download[needDownload.id] == nil{//这里需要先判断一下是否正在下载中,有可能缓存正在进行
                 
                 //创建一个下载任务
-                self.id2download[needDownload.id] = Downloader(needDownload.id, needDownload.url, finishFunc: self.finish)
+                self.id2download[needDownload.id] = Downloader(needDownload.id, needDownload.url)
                 
                 //开始下载
                 self.id2download[needDownload.id]!.download()
@@ -173,20 +173,7 @@ public enum DownloadManager {
     }
     
     /// 某个id下载完成(不代表下载成功)
-    private static func finish(_ id: String, _ err: Error?) {
-        if let err = err as? DownloaderError{//如果发生错误
-            if case let .error(msg) = err {
-                DownloadDBUtil.updateState(id, 3, msg)
-            }
-        } else if let err {
-            if let err = err as? URLError, err.code == .cancelled {//用户主动取消了请求,标记为暂停状态
-                DownloadDBUtil.updateState(id, 2)
-            } else {
-                DownloadDBUtil.updateState(id, 3, err.localizedDescription)
-            }
-        } else {//如果没有发生错误,则更新下载状态为下载完成
-            DownloadDBUtil.updateState(id, 10)
-        }
+    static func finish(_ id: String) {
         self.lock.lock()
         self.id2count.removeValue(forKey: id)
         self.id2download.removeValue(forKey: id)
@@ -214,7 +201,7 @@ public enum DownloadManager {
         ids.forEach{
             
             //删除文件
-            let path = Downloader.delete($0)
+            Downloader.delete($0)
         }
         self.lock.unlock()
     }

@@ -46,9 +46,6 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
     /// 文件名
     private var filename: String?
     
-    /// 完成之后的回调函数
-    private let finishFunc: (String, Error?) -> Void
-    
     /**
      * 失败重试最大次数
      */
@@ -67,9 +64,7 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
      */
     private var downloadedSize: Int64 = 0
     
-    /**
-     * 标记是否已经被取消
-     */
+    /// 标记是否已经被主动取消
     private var isCancel = false
     
     /**
@@ -95,11 +90,6 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
     //上回统计的下载大小,用来计算网速
     private var preDownloadedSize:Int64 = 0
     
-    /**
-     * 是否已经完成(有可能是报错了结束的)
-     */
-    var isFinish = false
-    
     //记录请求次数
     private var repeatCount = 0
     
@@ -110,30 +100,25 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
     /// - Parameter id: 文件唯一id
     /// - Parameter url: 下载地址
     /// - Parameter filename: 文件名
-    public init(_ id: String, _ url: String, _ filename: String? = nil, finishFunc: @escaping (String, Error?) -> Void) {
+    public init(_ id: String, _ url: String, _ filename: String? = nil) {
         self.id = id
         self.url = url
-        self.finishFunc = finishFunc
         self.filename = filename
     }
     
     /// 开始下载
     public func download(){
         if FileManager.default.fileExists(atPath: Downloader.getLinkPath(self.id)) {//文件已经下载完成,无需重新下载
-            
-            //回调下载结束函数
-            self.notify(.finish)
             Task.detached{//这里一定要异步,否则会造成死锁
-                self.finishFunc(self.id, nil)
+                self.callFinishAndNotify(nil)
             }
             return
         }
         Downloader.downloadingLock.lock()
         if Downloader.downloading.contains(self.id){//已经在下载
             Downloader.downloadingLock.unlock()
-            self.notify(.finish, DownloaderError.error("防止重复下载"))
             Task.detached{//这里一定要异步,否则会造成死锁
-                self.finishFunc(self.id, DownloaderError.error("禁止重复下载"))
+                self.callFinishAndNotify("禁止重复下载")
             }
             return
         }
@@ -316,20 +301,31 @@ public class Downloader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegat
         Downloader.downloadingLock.lock()
         Downloader.downloading.remove(self.id)
         Downloader.downloadingLock.unlock()
-        self.isFinish = true
         
         //完成之后回调下载进度,避免出现下载进度无法100%
         self.notify(.progress, [self.total, self.downloadedSize, 0])
-        if let err = err as? URLError, err.code == .cancelled {//用户主动取消了请求
-            
-            //回调下载结束函数
+        self.callFinishAndNotify(err?.localizedDescription)
+    }
+    
+    ///上传完成执行函数
+    private func callFinishAndNotify(_ errMsg: String? = nil){
+        if self.isCancel{//如果是用户主动取消
             self.notify(.pause)
-        } else {
             
-            //回调下载结束函数
-            self.notify(.finish, err)
+            //修改数据库文件下载状态
+            DownloadDBUtil.setState(self.id, 2)
+        } else if let errMsg = errMsg{//上传失败
+            self.notify(.finish, errMsg)
+            
+            //修改数据库文件上传状态
+            DownloadDBUtil.setState(self.id, 3, errMsg)
+        } else {// 上传成功
+            self.notify(.finish)
+            
+            //修改数据库文件上传状态
+            DownloadDBUtil.setState(self.id, 10)
         }
-        self.finishFunc(self.id, err)
+        DownloadManager.finish(self.id)
     }
     
     /// 发送通知

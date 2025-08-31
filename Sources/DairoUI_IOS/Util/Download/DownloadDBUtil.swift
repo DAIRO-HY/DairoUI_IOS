@@ -318,7 +318,7 @@ public enum DownloadDBUtil{
     /// - Parameter id: 文件唯一id
     /// - Parameter state: 状态
     /// - Parameter error: 下载失败时的错误消息
-    static func updateState(_ id: String, _ state: Int, _ error: String? = nil){
+    static func setState(_ id: String, _ state: Int, _ error: String? = nil){
         let updateSQL = "UPDATE download set state = \(state), error = ? where id = '\(id)' and state <> \(state);"
         var statement: OpaquePointer?
         let err: String?

@@ -6,6 +6,7 @@
 //
 
 import SQLite3
+import Foundation
 
 // 数据库读取数据扩展
 public extension OpaquePointer{
@@ -65,5 +66,17 @@ public extension OpaquePointer{
     /// - Returns Int8数据
     func int8(_ iCol: Int32) -> Int8{
         return Int8(sqlite3_column_int(self, iCol))
+    }
+    
+    /// 获取二进制数据
+    /// - Parameter iCol: 列号,0开始
+    /// - Returns 二进制数据
+    func data(_ iCol: Int32) -> Data{
+        if let bytes = sqlite3_column_blob(self, iCol){
+            let length = sqlite3_column_bytes(self, iCol)
+            return Data(bytes: bytes, count: Int(length))
+        } else {
+            return Data()
+        }
     }
 }

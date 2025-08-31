@@ -107,32 +107,18 @@ public struct DownloadItemView: View {
                     // 标记下载暂停
                     self.vm.setDownloadState(2)
                 case .finish:
-                    guard let error = userInfo["value"] as? Error else{
-//                        self.vm.isDownloaded = true
+                    if let error = userInfo["value"] as? String{
+                        
+                        /// 标记下载失败
+                        self.vm.setDownloadState(3)
+                        self.vm.error = error
+                    } else {
                         
                         // 标记下载完成
                         self.vm.setDownloadState(10)
-                        return
-                    }
-                    
-                    /// 标记下载失败
-                    self.vm.setDownloadState(3)
-                    if let error = error as? DownloaderError{
-                        if case let .error(msg) = error {
-                            self.vm.error = msg
-                        }
-                    } else {
-                        self.vm.error = error.localizedDescription
                     }
                 }
             }
-            //                    if self.isSelected{//当前为选中状态
-            //                        Image(systemName: "checkmark.circle")
-            //                            .font(.title2)
-            //                    } else {
-            //                        Image(systemName: "circle")
-            //                            .font(.title2)
-            //                    }
         }
         .padding(.horizontal)
     }
