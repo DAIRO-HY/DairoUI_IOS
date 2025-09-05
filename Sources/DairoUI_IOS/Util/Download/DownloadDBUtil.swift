@@ -158,7 +158,7 @@ public enum DownloadDBUtil{
         if err == nil && !existsIds.isEmpty{//将缓存文件修改文永久存储
             let ids = "'" + existsIds.joined(separator: "','") + "'"
             let updateSQL = """
-                    UPDATE download set saveType = 1 where id in (\(ids)) and saveType = 0; -- 将缓存文件设置为永久保存文件
+                    UPDATE download set saveType = 1, date = \(now) where id in (\(ids)) and saveType = 0; -- 将缓存文件设置为永久保存文件,并且更新下载时间
                     UPDATE download set state = 0 where id in (\(ids)) and state in (2,3); -- 将暂停或失败的文件设置为准备下载状态
                 """
             

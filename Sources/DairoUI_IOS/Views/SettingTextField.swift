@@ -16,15 +16,15 @@ public struct SettingTextField: View, @preconcurrency Setting {
     public var icon: SettingIcon?
     
     //图标尺寸
-    public let iconSize:CGFloat
+    public let iconSize: CGFloat
     
     //图标圆角大小
-    public let iconRadius:CGFloat
+    public let iconRadius: CGFloat
     public var title: String
     @Binding public var text: String
     
     //提示文字内容
-    public var placeholder:String
+    public var placeholder: String
     
     // 输入类型
     public let type: SettingTextFieldType
