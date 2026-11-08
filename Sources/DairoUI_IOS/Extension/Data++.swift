@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import CommonCrypto
 
 extension Data{
@@ -10,8 +11,15 @@ extension Data{
         return String(data: self, encoding: .utf8)
     }
     
-    public func sha256() -> String{
+    public var sha256: String{
         return hexStringFromData(input: digest(input: self as NSData))
+    }
+    
+    /// 获取该Data的md5
+    public var md5: String{
+        let hashed = Insecure.MD5.hash(data: self)
+        let hashString = hashed.compactMap { String(format: "%02x", $0) }.joined()
+        return hashString
     }
     
     private func digest(input : NSData) -> NSData {

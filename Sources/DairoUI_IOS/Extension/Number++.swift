@@ -26,9 +26,7 @@ extension SignedInteger{
         return String(this) + "B"
     }
     
-    /**
-     * 转换成时间格式
-     */
+    /// 时间戳(毫秒)格式化
     public var timeFormat: String{
         
         //得到秒
@@ -54,9 +52,7 @@ extension SignedInteger{
 
 extension Float64{
     
-    /**
-     * 转换成时间格式
-     */
+    /// 时间戳(毫秒)格式化
     public var timeFormat: String{
         return Int64(self).timeFormat
     }

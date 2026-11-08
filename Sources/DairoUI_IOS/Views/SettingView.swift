@@ -93,7 +93,8 @@ public struct SettingView: View {
                     navigationTitleDisplayMode: page.navigationTitleDisplayMode,
                     isInitialPage: isInitialPage
                 ) {
-                    ForEach(page.tuple.settings, id: \.identifier) { setting in
+                    ForEach(page.tuple.settings.indexedForEach) { item in
+                        let setting = item.setting
                         SettingView(setting: setting, isPagePreview: true)
                     }
                 }
@@ -111,12 +112,14 @@ public struct SettingView: View {
                 dividerTrailingMargin: group.dividerTrailingMargin,
                 dividerColor: group.dividerColor
             ) {
-                ForEach(group.tuple.settings, id: \.identifier) { setting in
+                ForEach(group.tuple.settings.indexedForEach) { item in
+                    let setting = item.setting
                     SettingView(setting: setting)
                 }
             }
         case let tuple as SettingTupleView:
-            ForEach(tuple.settings, id: \.identifier) { setting in
+            ForEach(tuple.settings.indexedForEach) { item in
+                let setting = item.setting
                 SettingView(setting: setting)
             }
 
@@ -124,6 +127,21 @@ public struct SettingView: View {
             customView.view
         default:
             Text("Unsupported setting, please file a bug report.")
+        }
+    }
+}
+
+/// ForEach 用的包装：id = 在列表中的位置序号 + 原 identifier。
+/// 保证每次渲染 id 稳定，且同一分组里即使标题相同也不冲突。
+struct IndexedSetting: Identifiable {
+    let id: AnyHashable
+    let setting: Setting
+}
+
+extension Array where Element == Setting {
+    var indexedForEach: [IndexedSetting] {
+        enumerated().map { offset, setting in
+            IndexedSetting(id: [AnyHashable(offset), setting.identifier ?? AnyHashable("nil")], setting: setting)
         }
     }
 }

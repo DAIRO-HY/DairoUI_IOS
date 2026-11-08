@@ -60,12 +60,12 @@ public extension String {
     /**
      * 获取字符串的SHA256
      */
-    public var sha256:String{
-        if let stringData = self.data(using: String.Encoding.utf8) {
-            return stringData.sha256()
-        }
-        return ""
-    }
+//    public var sha256: String{
+//        if let stringData = self.data(using: String.Encoding.utf8) {
+//            return stringData.sha256()
+//        }
+//        return ""
+//    }
     
     /**
      * 获取字符串的MD5
