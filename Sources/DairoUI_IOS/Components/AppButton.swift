@@ -3,7 +3,7 @@ import SwiftUI
 /**
  * GL按钮
  */
-public struct UCButton: View {
+public struct AppButton: View {
     
     // 按钮显示内容
     let mContent:String
@@ -61,8 +61,8 @@ public struct UCButton: View {
      * parameter content 按钮文字
      * parameter action 按钮事件
      */
-    public static func primary(_ content: String, action: @escaping ()->Void) -> UCButton{
-        return UCButton(
+    public static func primary(_ content: String, action: @escaping ()->Void) -> AppButton{
+        return AppButton(
             content,
             textColor: Color.gl.btnTextPrimary,
             bgColor: Color.gl.bgPrimary,
@@ -76,8 +76,8 @@ public struct UCButton: View {
      * parameter content 按钮文字
      * parameter action 按钮事件
      */
-    public static func secondary(_ content: String, action: @escaping ()->Void) -> UCButton{
-        return UCButton(
+    public static func secondary(_ content: String, action: @escaping ()->Void) -> AppButton{
+        return AppButton(
             content,
             textColor: Color.gl.btnTextSecondary,
             bgColor: Color.gl.bgSecondary,
@@ -90,8 +90,8 @@ public struct UCButton: View {
 struct GLButton_Previews: PreviewProvider {
     static var previews: some View {
         VStack{
-            UCButton.primary("按钮",action: {})
-            UCButton.secondary("按钮",action: {})
+            AppButton.primary("按钮",action: {})
+            AppButton.secondary("按钮",action: {})
         }.padding()
     }
 }

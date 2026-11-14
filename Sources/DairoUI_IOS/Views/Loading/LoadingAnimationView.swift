@@ -5,7 +5,7 @@ import SwiftUI
  */
 struct LoadingAnimationView: View {
     
-    @EnvironmentObject private var rootVm: RootViewModel
+    @EnvironmentObject private var rootViewModel: RootViewModel
     
     /**
      * 动画显示表示
@@ -13,7 +13,7 @@ struct LoadingAnimationView: View {
     @State private var isAnimation = false
     
     var body: some View {
-        if self.rootVm.showWaiting{
+        if self.rootViewModel.showWaiting{
             GeometryReader { geo in
                 ZStack(alignment: .center){
                     Color.black.opacity(0.5).edgesIgnoringSafeArea(.all)//忽略安全区域

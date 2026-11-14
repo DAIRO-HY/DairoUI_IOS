@@ -1,5 +1,5 @@
 //
-//  SettingButton.swift
+//  SettingNavigationLink.swift
 //  Setting
 //
 //  Created by A. Zheng (github.com/aheze) on 2/21/23.

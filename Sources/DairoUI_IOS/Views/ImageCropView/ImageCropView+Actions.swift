@@ -1,5 +1,5 @@
 //
-//  ImageCropView++.swift
+//  ImageCropView+Actions.swift
 //  ImageCrop
 //
 //  Created by zhoulq on 2024/03/17.
@@ -43,7 +43,7 @@ extension ImageCropView {
         
         //允许最小的缩小比例
         let minZoomAmount: CGFloat
-        if CGFloat(self.cropWHRate) > inputImageWHRate{//裁剪框宽高比大于图片宽高比,说明裁剪框有足够的宽度容纳图片的宽度,用宽度来计算最小缩放比例
+        if CGFloat(self.aspectRatio) > inputImageWHRate{//裁剪框宽高比大于图片宽高比,说明裁剪框有足够的宽度容纳图片的宽度,用宽度来计算最小缩放比例
             minZoomAmount = self.cropWidth / displayW1
         }else{
             minZoomAmount = self.cropHeight / displayH1
@@ -104,7 +104,7 @@ extension ImageCropView {
         let height = self.cropHeight * displayZoomRate
         
         let cropImage = self.crop(from: self.inputImage, croppedTo: CGRect(x: CGFloat(Int(x)), y: CGFloat(Int(y)), width: CGFloat(Int(width)), height: CGFloat(Int(height))))
-        self.callback(cropImage)
+        self.onCrop(cropImage)
     }
     
     /**

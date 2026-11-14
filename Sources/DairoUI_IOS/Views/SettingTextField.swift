@@ -8,6 +8,14 @@
 
 import SwiftUI
 
+#if os(iOS)
+/// 输入框的键盘类型（iOS 上即 UIKeyboardType）
+public typealias SettingKeyboardType = UIKeyboardType
+#else
+/// 输入框的键盘类型（非 iOS 平台没有键盘类型，仅为保持接口一致）
+public enum SettingKeyboardType: Sendable { case `default` }
+#endif
+
 /**
  A text field.
  */
@@ -28,6 +36,9 @@ public struct SettingTextField: View, @preconcurrency Setting {
     
     // 输入类型
     public let type: SettingTextFieldType
+
+    // 键盘类型
+    public let keyboardType: SettingKeyboardType
     public var verticalPadding = CGFloat(14)
     public var horizontalPadding: CGFloat? = nil
     
@@ -40,6 +51,7 @@ public struct SettingTextField: View, @preconcurrency Setting {
         text: Binding<String>,
         placeholder:String = "",
         type: SettingTextFieldType = .text,
+        keyboardType: SettingKeyboardType = .default,
         verticalPadding: CGFloat = CGFloat(14),
         horizontalPadding: CGFloat? = nil
     ) {
@@ -51,6 +63,7 @@ public struct SettingTextField: View, @preconcurrency Setting {
         self._text = text
         self.placeholder = placeholder
         self.type = type
+        self.keyboardType = keyboardType
         self.verticalPadding = verticalPadding
         self.horizontalPadding = horizontalPadding
     }
@@ -64,6 +77,7 @@ public struct SettingTextField: View, @preconcurrency Setting {
             text: $text,
             placeholder: self.placeholder,
             type: self.type,
+            keyboardType: self.keyboardType,
             verticalPadding: verticalPadding,
             horizontalPadding: horizontalPadding
         )
@@ -92,6 +106,9 @@ struct SettingTextFieldView: View {
     
     // 输入类型
     let type: SettingTextFieldType
+
+    // 键盘类型
+    let keyboardType: SettingKeyboardType
     var horizontalSpacing = CGFloat(12)
     
     var verticalPadding = CGFloat(14)
@@ -110,7 +127,7 @@ struct SettingTextFieldView: View {
             if self.type == .text{
                 TextField(self.placeholder, text: $text)
 #if os(iOS)
-                    .keyboardType(.emailAddress) // 确保输入法切换
+                    .keyboardType(self.keyboardType)
                     .autocapitalization(.none) // 可选：关闭自动大写
 #endif
                     .disableAutocorrection(true) // 可选：关闭自动校正
@@ -122,7 +139,7 @@ struct SettingTextFieldView: View {
             }else{
                 SecureField(self.placeholder, text: $text)
 #if os(iOS)
-                    .keyboardType(.emailAddress) // 确保输入法切换
+                    .keyboardType(self.keyboardType)
                     .autocapitalization(.none) // 可选：关闭自动大写
 #endif
                     .disableAutocorrection(true) // 可选：关闭自动校正

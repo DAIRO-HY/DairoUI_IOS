@@ -10,11 +10,11 @@ struct ToastView: View {
      */
     @State private var opacity = 1.0
     
-    @EnvironmentObject private var rootVm: RootViewModel
+    @EnvironmentObject private var rootViewModel: RootViewModel
     
     var body: some View {
         if let toastMessage = Toast.toastMessage {
-            if self.rootVm.toastFlag{
+            if self.rootViewModel.toastFlag{
                 SubToastView(delay: toastMessage.delay, message: toastMessage.message)
             } else {
                 SubToastView(delay: toastMessage.delay, message: toastMessage.message)

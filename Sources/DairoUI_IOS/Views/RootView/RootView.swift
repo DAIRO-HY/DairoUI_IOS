@@ -1,5 +1,5 @@
 //
-//  RootGroup.swift
+//  RootView.swift
 //  DairoDFS
 //
 //  Created by zhoulq on 2025/04/23.
@@ -11,9 +11,9 @@ import SwiftUI
 
 public struct RootView<Content>: View where Content: View {
     
-    @StateObject public var rootVm = RootViewModel()
+    @StateObject public var rootViewModel = RootViewModel()
     
-    @AppStorage("theme") private var theme = 0
+    @AppStorage(ThemeMode.storageKey) private var theme = ThemeMode.system.rawValue
     
     /// 子控件
     @ViewBuilder public var content: Content
@@ -23,14 +23,14 @@ public struct RootView<Content>: View where Content: View {
     public var body: some View {
         ZStack{
             self.content
-            LoadingAnimationView().environmentObject(self.rootVm)
-            ToastView().environmentObject(self.rootVm)
+            LoadingAnimationView().environmentObject(self.rootViewModel)
+            ToastView().environmentObject(self.rootViewModel)
         }
-        .preferredColorScheme(self.theme == 0 ? nil : (self.theme == 1 ? ColorScheme.light : ColorScheme.dark))
+        .preferredColorScheme((ThemeMode(rawValue: self.theme) ?? .system).colorScheme)
         .onAppear{
-            RootViewManager.add(rootVm)
+            RootViewManager.add(rootViewModel)
         }.onDisappear{
-            RootViewManager.remove(rootVm)
+            RootViewManager.remove(rootViewModel)
         }
     }
 }

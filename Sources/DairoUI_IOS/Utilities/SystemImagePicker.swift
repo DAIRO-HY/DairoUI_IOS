@@ -11,16 +11,16 @@ import UIKit
 /**
  * 图片选择器
  */
-public struct SystemUIImagePicker: UIViewControllerRepresentable {
+public struct SystemImagePicker: UIViewControllerRepresentable {
     
     @Environment(\.presentationMode) var presentationMode
     
     let callback:(_ image: UIImage?)->Void
     
     public class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let parent: SystemUIImagePicker
+        let parent: SystemImagePicker
         
-        init(_ parent: SystemUIImagePicker) {
+        init(_ parent: SystemImagePicker) {
             self.parent = parent
         }
         
@@ -35,13 +35,13 @@ public struct SystemUIImagePicker: UIViewControllerRepresentable {
         Coordinator(self)
     }
     
-    public func makeUIViewController(context: UIViewControllerRepresentableContext<SystemUIImagePicker>) -> UIImagePickerController {
+    public func makeUIViewController(context: UIViewControllerRepresentableContext<SystemImagePicker>) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
         return picker
     }
 
-    public func updateUIViewController(_ uiViewController: UIImagePickerController, context: UIViewControllerRepresentableContext<SystemUIImagePicker>) {
+    public func updateUIViewController(_ uiViewController: UIImagePickerController, context: UIViewControllerRepresentableContext<SystemImagePicker>) {
 
     }
 }

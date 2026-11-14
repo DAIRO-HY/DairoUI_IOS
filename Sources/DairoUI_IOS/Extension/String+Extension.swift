@@ -83,7 +83,7 @@ public extension String {
     func trim() -> String {
         return self.trimmingCharacters(in: .whitespacesAndNewlines)
     }
-    
+
     /**
      * Url编码
      */
@@ -95,29 +95,9 @@ public extension String {
     }
     
     /**
-     * 截取某个字符之前得字符串
-     */
-    func before(_ before: Character) -> String?{
-        guard let firstIndex = self.firstIndex(of: before) else{
-            return nil
-        }
-        return String(self[..<firstIndex])
-    }
-    
-    /**
-     * 截取某个字符以后得字符串
-     */
-    func after(_ after: Character) -> String?{
-        guard let firstIndex = self.firstIndex(of: after) else{
-            return nil
-        }
-        return String(self[self.index(firstIndex,offsetBy: 1)...])
-    }
-    
-    /**
      * 获取绝对路径
      */
-    public var absPath: String{
+    public var absolutePath: String{
         if self.hasPrefix("/"){//如果这个路径是以/开头,说明已经是绝对路径,原样返回即可
             return self
         }

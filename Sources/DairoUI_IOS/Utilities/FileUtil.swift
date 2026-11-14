@@ -7,59 +7,11 @@ import CommonCrypto
 public enum FileUtil{
     
     /**
-     * 程序启动时,先把需要的文件夹全部创建好
-     */
-    //    static func createFolder(){
-    //
-    //           //保存文件夹
-    //           let documentsDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
-    //        guard let root = documentsDirectory?.path() else{
-    //            return
-    //        }
-    //        self.mkdirs(root + "/music")
-    //    }
-    
-    /**
-     * 获取歌曲存储目录
-     */
-    static var musicFolderPath: String {
-        
-        //保存保存根目录
-        let rootDirectoryURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-        
-        //文件保存路径
-        let musicDirectoryURL = rootDirectoryURL!.appendingPathComponent("music")
-        return musicDirectoryURL.path
-    }
-    
-    /**
-     * 获取图片存储目录
-     */
-    static var imageFolderPath: String {
-        
-        //保存保存根目录
-        let rootDirectoryURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-        
-        //文件保存路径
-        let musicDirectoryURL = rootDirectoryURL!.appendingPathComponent("image")
-        return musicDirectoryURL.path
-    }
-    
-    /**
-     * 同文件的下载地址获取本地存储路径
-     */
-    static func getMusicURLByUrl(_ url: String) -> String{
-        
-        //设置保存文件目录
-        return self.musicFolderPath + "/" + url.md5
-    }
-    
-    /**
      读取文件所有内容
      - Parameters:
      - path: 文件路径
      */
-    public static func readAll(_ path: String) -> Data?{
+    public static func readData(_ path: String) -> Data?{
         
         // 打开文件
         guard let readFileHandle = FileHandle(forReadingAtPath: path) else{
@@ -74,12 +26,12 @@ public enum FileUtil{
     }
     
     /// 获取文件MD5
-    public static func getMD5(_ path: String) -> String? {
-        return getMD5(URL(fileURLWithPath: path))
+    public static func md5(_ path: String) -> String? {
+        return md5(URL(fileURLWithPath: path))
     }
     
     /// 获取文件MD5
-    public static func getMD5(_ url: URL) -> String? {
+    public static func md5(_ url: URL) -> String? {
         guard let stream = InputStream(url: url) else { return nil }
         stream.open()
         defer { stream.close() }
@@ -113,7 +65,7 @@ public enum FileUtil{
      - path: 文件路径
      */
     public static func readText(_ path: String) -> String{
-        guard let data = FileUtil.readAll(path) else{
+        guard let data = FileUtil.readData(path) else{
             return ""
         }
         guard let text = String(data: data, encoding: .utf8) else{
@@ -144,11 +96,11 @@ public enum FileUtil{
         //判断文件是否存在,不存在先创建一个文件
         //如果文件已经存在,再次创建文件时会把之前的文件内容清空,所以这里要先判断是否已经存在
         if !FileManager.default.fileExists(atPath: path){//文件不存在时
-            let parentPath = FileUtil.getParentPath(path)
+            let parentPath = FileUtil.parentPath(path)
             if !FileManager.default.fileExists(atPath: parentPath){//判断文件夹是否存在
                 
                 //创建文件夹
-                FileUtil.mkdirs(parentPath)
+                FileUtil.createDirectory(parentPath)
             }
             
             //创建文件
@@ -177,9 +129,9 @@ public enum FileUtil{
      */
     public static func createEmptyFile(_ path: String){
         if !FileManager.default.fileExists(atPath: path) {//文件不存在
-            let parentPath = FileUtil.getParentPath(path)
+            let parentPath = FileUtil.parentPath(path)
             if !FileManager.default.fileExists(atPath: parentPath){//创建文件夹
-                FileUtil.mkdirs(parentPath)
+                FileUtil.createDirectory(parentPath)
             }
             
             //创建文件
@@ -190,7 +142,7 @@ public enum FileUtil{
     /**
      * 创建多级目录
      */
-    public static func mkdirs(_ path: String) -> Bool{
+    public static func createDirectory(_ path: String) -> Bool{
         let url = URL(fileURLWithPath: path)
         
         // 如果文件夹不存在，则创建
@@ -206,7 +158,7 @@ public enum FileUtil{
      * 获取文件名
      * paramter path 当前文件路径
      */
-    public static func getFileName(_ path: String) -> String{
+    public static func fileName(_ path: String) -> String{
         
         //查找最后一个斜杠所在位置
         guard let lastSepIndex = path.lastIndex(of: "/") else {
@@ -220,7 +172,7 @@ public enum FileUtil{
      * 获取文件上级目录
      * paramter path 当前文件路径
      */
-    public static func getParentPath(_ path: String) -> String{
+    public static func parentPath(_ path: String) -> String{
         
         //查找最后一个斜杠所在位置
         guard let lastSepIndex = path.lastIndex(of: "/") else {
@@ -234,8 +186,8 @@ public enum FileUtil{
      * 获取文件后缀
      * paramter path 当前文件路径
      */
-    public static func getExt(_ path: String) -> String{
-        let filename = self.getFileName(path)
+    public static func fileExtension(_ path: String) -> String{
+        let filename = self.fileName(path)
         
         //查找最后一个点所在位置
         guard let lastDotIndex = filename.lastIndex(of: ".") else {
@@ -248,7 +200,7 @@ public enum FileUtil{
     /**
      * 获取文件大小
      */
-    public static func getFileSize(_ path: String) -> Int64?{
+    public static func fileSize(_ path: String) -> Int64?{
         guard let attr = try? FileManager.default.attributesOfItem(atPath: path) else{
             return nil
         }
@@ -272,55 +224,4 @@ public enum FileUtil{
         try? fileManager.moveItem(at: sourceURL, to: targetURL)
     }
     
-    /**
-     * 歌曲文件缓存大小
-     */
-    static var musicCacheSize: UInt64 {
-        
-        //当前歌曲存储目录
-        let path = self.musicFolderPath
-        let total = self.calculateFolderSize(path)
-        return total
-    }
-    
-    /**
-     * 图片缓存大小
-     */
-    static var imageCacheSize: UInt64 {
-        
-        //当前歌曲存储目录
-        let path = self.imageFolderPath
-        let total = self.calculateFolderSize(path)
-        return total
-    }
-    
-    /**
-     * 递归获取文件夹大小
-     */
-    private static func calculateFolderSize(_ dirPath: String) -> UInt64 {
-        let fileManager = FileManager.default
-        var folderSize: UInt64 = 0
-        
-        //子目录(文件/及文件夹)
-        guard let subList = try? fileManager.contentsOfDirectory(atPath: dirPath) else{
-            return 0
-        }
-        for content in subList {
-            
-            //拼接子目录路径
-            let contentPath = (dirPath as NSString).appendingPathComponent(content)
-            var isDirectory: ObjCBool = false
-            
-            if fileManager.fileExists(atPath: contentPath, isDirectory: &isDirectory) {
-                if isDirectory.boolValue {//如果是一个文件夹,则递归循环
-                    folderSize += self.calculateFolderSize(contentPath)
-                } else {//如果是文件,则累计文件大小
-                    if let fileSize = try? fileManager.attributesOfItem(atPath: contentPath)[.size] as? UInt64 {
-                        folderSize += fileSize
-                    }
-                }
-            }
-        }
-        return folderSize
-    }
 }

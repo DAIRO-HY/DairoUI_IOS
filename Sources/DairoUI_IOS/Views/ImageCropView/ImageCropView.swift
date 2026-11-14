@@ -45,7 +45,7 @@ public struct ImageCropView: View {
     /**
      * 裁剪完成之后的回调
      */
-    let callback:(_ cropImage: UIImage?)->Void
+    let onCrop:(_ cropImage: UIImage?)->Void
     
     /**
      * 当前图片
@@ -90,21 +90,21 @@ public struct ImageCropView: View {
     /**
      * 裁剪宽高比
      */
-    let cropWHRate: Float
+    let aspectRatio: Float
     
     //当前视图区域的尺寸
     let screenWidth = UIScreen.main.bounds.width
     let screenHeight = UIScreen.main.bounds.height
     
     /**
-     * cropWHRate 裁剪宽高比
+     * aspectRatio 裁剪宽高比
      * inputImage 要裁剪的图片
-     * callback 裁剪完成之后的回调函数
+     * onCrop 裁剪完成之后的回调函数
      */
-    public init(cropWHRate: String = "1:1", inputImage: UIImage, callback:@escaping (_ cropImage: UIImage?)->Void) {
-        self.cropWHRate = cropWHRate.rate
+    public init(aspectRatio: String = "1:1", inputImage: UIImage, onCrop:@escaping (_ cropImage: UIImage?)->Void) {
+        self.aspectRatio = aspectRatio.rate
         self.inputImage = inputImage
-        self.callback = callback
+        self.onCrop = onCrop
         
         //裁剪框支持的最大宽度
         let maxCropWidth = self.screenWidth - self.cropPadding * 2
@@ -115,12 +115,12 @@ public struct ImageCropView: View {
         //支持的裁剪框最大宽高比
         let maxCropRate = Float(maxCropWidth / maxCropHidth)
         
-        if maxCropRate > self.cropWHRate{//有足够的宽度容纳当前比例,则裁剪框高度取最大高度
+        if maxCropRate > self.aspectRatio{//有足够的宽度容纳当前比例,则裁剪框高度取最大高度
             self.cropHeight = maxCropHidth
-            self.cropWidth = maxCropHidth * CGFloat(self.cropWHRate)
+            self.cropWidth = maxCropHidth * CGFloat(self.aspectRatio)
         }else{//有足够的高度容纳当前比例,则裁剪框宽度取最大宽度
             self.cropWidth = maxCropWidth
-            self.cropHeight = maxCropWidth / CGFloat(self.cropWHRate)
+            self.cropHeight = maxCropWidth / CGFloat(self.aspectRatio)
         }
     }
     
@@ -224,7 +224,7 @@ public struct ImageCropView: View {
 struct ImageMoveAndScaleSheet_Previews: PreviewProvider {
     static var previews: some View {
         let inputImage = UIImage(named: "no_img")!
-        ImageCropView(cropWHRate:"2:1", inputImage : inputImage){ _ in
+        ImageCropView(aspectRatio:"2:1", inputImage : inputImage){ _ in
         }
     }
 }
