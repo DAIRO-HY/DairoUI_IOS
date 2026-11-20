@@ -162,10 +162,9 @@ public enum FileUtil{
         
         //查找最后一个斜杠所在位置
         guard let lastSepIndex = path.lastIndex(of: "/") else {
-            return ""
+            return path
         }
-        let substringAfterLastSlash = path[path.index(after: lastSepIndex)...]
-        return String(substringAfterLastSlash)
+        return String(path[path.index(after: lastSepIndex)...])
     }
     
     /**
@@ -178,8 +177,7 @@ public enum FileUtil{
         guard let lastSepIndex = path.lastIndex(of: "/") else {
             return ""
         }
-        let substringAfterLastSlash = path[...path.index(before: lastSepIndex)]
-        return String(substringAfterLastSlash)
+        return String(path[..<lastSepIndex])
     }
     
     /**
@@ -193,8 +191,7 @@ public enum FileUtil{
         guard let lastDotIndex = filename.lastIndex(of: ".") else {
             return ""
         }
-        let substringAfterLastSlash = filename[filename.index(before: lastDotIndex)...]
-        return String(substringAfterLastSlash)
+        return String(filename[filename.index(after: lastDotIndex)...])
     }
     
     /**
